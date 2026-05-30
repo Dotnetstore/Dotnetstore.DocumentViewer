@@ -43,7 +43,7 @@ This product makes a **practical** "view-only" guarantee, not an unbreakable one
   - AppHost parameter: `dotnet user-secrets set Parameters:api-key <random> --project src/Dotnetstore.DocumentViewer.Shared.AppHost`
   - WebApi (if running standalone): `Jwt:SigningKey`, `ApiKey:Value`, `SignedUrl:SigningKey`, `Seed:Admin:Password` — `dotnet user-secrets set <key> <value> --project src/Dotnetstore.DocumentViewer.WebApi`
 - **DOCX conversion runs via the bundled Gotenberg container** that the AppHost starts alongside the WebApi. WebApi resolves it through Aspire service discovery (`http://gotenberg`) and POSTs DOCX to `/forms/libreoffice/convert`. Set `DocumentConversion:Mode=Soffice` to shell out to a locally-installed `soffice` binary instead — useful if you can't run a sidecar container.
-- **HTTPS termination matters for rate limiting.** Behind a reverse proxy, configure forwarded-headers so `X-Forwarded-For` reflects the real client IP and rate-limit partitions don't all collapse to the proxy address.
+- **HTTPS termination matters for rate limiting.** Behind a reverse proxy, set `ForwardedHeaders:KnownNetworks` to the proxy's CIDR (e.g. `["10.0.0.0/8"]`) or `ForwardedHeaders:KnownProxies` to specific proxy IPs. Without that, `X-Forwarded-For` is ignored, rate-limit partitions collapse to the proxy's IP, and audit-log entries record the proxy instead of the real client. Loopback is trusted by default so Aspire local dev works out of the box.
 
 ## Running locally
 

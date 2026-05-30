@@ -13,6 +13,8 @@ using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Storage;
 using FastEndpoints;
 using FastEndpoints.Swagger;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -89,6 +91,38 @@ builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationSc
         };
     });
 builder.Services.AddAuthorization();
+
+// Forwarded headers — translates X-Forwarded-For / -Proto / -Host onto the request
+// when the connecting peer is a trusted reverse proxy. In Aspire local dev the WebApi
+// is direct on localhost (loopback is trusted by default), so this is a no-op there
+// but keeps deployments behind nginx/Azure App Service/Container Apps honest.
+builder.Services
+    .AddOptions<ForwardedHeadersConfig>()
+    .Bind(builder.Configuration.GetSection(ForwardedHeadersConfig.SectionName));
+
+builder.Services
+    .Configure<ForwardedHeadersOptions>(options =>
+    {
+        options.ForwardedHeaders = ForwardedHeaders.XForwardedFor
+                                   | ForwardedHeaders.XForwardedProto
+                                   | ForwardedHeaders.XForwardedHost;
+    })
+    .AddOptions<ForwardedHeadersOptions>()
+    .Configure<IOptions<ForwardedHeadersConfig>>((fh, cfg) =>
+    {
+        var c = cfg.Value;
+        fh.ForwardLimit = c.ForwardLimit;
+        foreach (var net in c.KnownNetworks)
+        {
+            if (System.Net.IPNetwork.TryParse(net, out var parsed))
+                fh.KnownIPNetworks.Add(parsed);
+        }
+        foreach (var proxy in c.KnownProxies)
+        {
+            if (System.Net.IPAddress.TryParse(proxy, out var parsed))
+                fh.KnownProxies.Add(parsed);
+        }
+    });
 
 // ApiKey
 builder.Services
@@ -196,6 +230,15 @@ var app = builder.Build();
 
 app.UseExceptionHandler();
 app.UseStatusCodePages();
+
+// Forwarded headers must run BEFORE anything that consumes the client IP — the rate
+// limiter, the ApiKey middleware, and the render endpoint's audit-log entries all
+// read Connection.RemoteIpAddress, which this middleware rewrites from X-Forwarded-For
+// when the connecting peer is in KnownNetworks / KnownProxies.
+var fhEnabled = app.Configuration
+    .GetValue($"{ForwardedHeadersConfig.SectionName}:Enabled", defaultValue: true);
+if (fhEnabled)
+    app.UseForwardedHeaders();
 
 app.UseMiddleware<ApiKeyMiddleware>();
 app.UseRateLimiter();
