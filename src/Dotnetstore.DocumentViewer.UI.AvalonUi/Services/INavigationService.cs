@@ -12,4 +12,5 @@ public interface INavigationService
     void NavigateToDocument(Guid documentId);
     void NavigateToAdminUsers();
     void NavigateToAdminAccess();
+    void NavigateToChangePassword();
 }

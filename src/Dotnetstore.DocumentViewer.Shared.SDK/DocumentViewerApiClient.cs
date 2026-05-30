@@ -73,6 +73,12 @@ internal sealed class DocumentViewerApiClient(HttpClient http) : IDocumentViewer
         response.EnsureSuccessStatusCode();
     }
 
+    public async Task ResetUserPasswordAsync(Guid id, ResetPasswordRequest request, CancellationToken ct = default)
+    {
+        using var response = await http.PostAsJsonAsync($"/users/{id}/reset-password", request, ct);
+        response.EnsureSuccessStatusCode();
+    }
+
     public async Task<DocumentAccessDto> GrantAccessAsync(Guid documentId, GrantAccessRequest request, CancellationToken ct = default) =>
         await PostJson<GrantAccessRequest, DocumentAccessDto>($"/documents/{documentId}/access", request, ct);
 

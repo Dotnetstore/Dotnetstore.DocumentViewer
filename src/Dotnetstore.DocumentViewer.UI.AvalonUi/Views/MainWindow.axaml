@@ -17,7 +17,7 @@
     <Grid RowDefinitions="Auto,*">
         <Border Grid.Row="0" BorderBrush="#22000000" BorderThickness="0,0,0,1"
                 IsVisible="{Binding IsAuthenticated}">
-            <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto,Auto" Margin="12,6">
+            <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto,Auto,Auto" Margin="12,6">
                 <Button Grid.Column="0" Content="Documents" Command="{Binding GoToDocumentsCommand}" Margin="0,0,4,0"/>
                 <Button Grid.Column="1" Content="Users" Command="{Binding GoToAdminUsersCommand}"
                         IsVisible="{Binding IsAdmin}" Margin="0,0,4,0"/>
@@ -25,7 +25,8 @@
                         IsVisible="{Binding IsAdmin}"/>
                 <TextBlock Grid.Column="4" Text="{Binding CurrentUserEmail}" Opacity="0.7"
                            VerticalAlignment="Center" Margin="0,0,12,0"/>
-                <Button Grid.Column="5" Content="Sign out" Command="{Binding SignOutCommand}"/>
+                <Button Grid.Column="5" Content="Change password" Command="{Binding GoToChangePasswordCommand}" Margin="0,0,4,0"/>
+                <Button Grid.Column="6" Content="Sign out" Command="{Binding SignOutCommand}"/>
             </Grid>
         </Border>
 

@@ -37,6 +37,9 @@ public partial class App : Application
             services.AddTransient<LoginViewModel>();
             services.AddTransient<DocumentListViewModel>();
             services.AddTransient<DocumentViewerViewModel>();
+            services.AddTransient<AdminUsersViewModel>();
+            services.AddTransient<AdminAccessViewModel>();
+            services.AddTransient<ChangePasswordViewModel>();
 
             Services = services.BuildServiceProvider();
 

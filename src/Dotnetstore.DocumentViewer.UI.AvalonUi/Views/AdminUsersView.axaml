@@ -56,6 +56,21 @@
                     <Button Content="Delete" Command="{Binding DeleteCommand}" Foreground="Crimson"
                             IsVisible="{Binding !IsCreatingNew}"/>
                 </StackPanel>
+
+                <!-- Admin reset-password panel, only when editing an existing user. -->
+                <Border BorderBrush="#22000000" BorderThickness="0,1,0,0" Margin="0,12,0,0" Padding="0,12,0,0"
+                        IsVisible="{Binding !IsCreatingNew}">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="Reset password" FontWeight="SemiBold"/>
+                        <TextBlock Text="Sets a new password and forces this user to change it on next login."
+                                   Opacity="0.7" TextWrapping="Wrap"/>
+                        <TextBox Text="{Binding ResetNewPassword, Mode=TwoWay}"
+                                 Watermark="New password (min 8 chars)" PasswordChar="●"/>
+                        <Button Content="Reset password" Command="{Binding ResetPasswordCommand}"/>
+                        <TextBlock Text="{Binding ResetStatusMessage}" Foreground="ForestGreen" TextWrapping="Wrap"
+                                   IsVisible="{Binding ResetStatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                    </StackPanel>
+                </Border>
             </StackPanel>
         </Border>
 

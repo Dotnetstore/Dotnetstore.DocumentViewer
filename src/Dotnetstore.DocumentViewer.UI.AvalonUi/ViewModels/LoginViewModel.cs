@@ -36,7 +36,10 @@ public sealed partial class LoginViewModel(
             var me = await api.MeAsync();
             session.SetMe(me);
             Password = string.Empty;
-            nav.NavigateToDocumentList();
+            if (me.MustChangePassword)
+                nav.NavigateToChangePassword();
+            else
+                nav.NavigateToDocumentList();
         }
         catch (HttpRequestException ex)
         {

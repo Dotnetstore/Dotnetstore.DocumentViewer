@@ -13,12 +13,14 @@ internal sealed class PdfPageRenderer : IPdfPageRenderer
 {
     private const int RenderDpi = 150;
 
-    public int GetPageCount(Stream pdf) => Conversion.GetPageCount(pdf, leaveOpen: true);
+    // Fully qualified PDFtoImage.Conversion to avoid clashing with the sibling
+    // Dotnetstore.DocumentViewer.WebApi.Infrastructure.Conversion namespace.
+    public int GetPageCount(Stream pdf) => PDFtoImage.Conversion.GetPageCount(pdf, leaveOpen: true);
 
     public byte[] RenderPagePng(Stream pdf, int page, string watermarkText)
     {
         var options = new RenderOptions { Dpi = RenderDpi, WithAnnotations = true, WithFormFill = false };
-        using var bitmap = Conversion.ToImage(pdf, page: page, leaveOpen: true, password: null, options: options);
+        using var bitmap = PDFtoImage.Conversion.ToImage(pdf, page: page, leaveOpen: true, password: null, options: options);
 
         DrawWatermark(bitmap, watermarkText);
 

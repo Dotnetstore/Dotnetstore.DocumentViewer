@@ -17,6 +17,7 @@ internal sealed class UploadDocumentEndpoint(
     TimeProvider clock) : EndpointWithoutRequest<DocumentDto>
 {
     private const string PdfContentType = "application/pdf";
+    private const string DocxContentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
     public override void Configure()
     {
@@ -44,9 +45,10 @@ internal sealed class UploadDocumentEndpoint(
         }
 
         var extension = Path.GetExtension(file.FileName);
-        if (!IsSupported(file.ContentType, extension))
+        var kind = Classify(file.ContentType, extension);
+        if (kind is null)
         {
-            AddError("file", "Only PDF documents are supported in this release.");
+            AddError("file", "Only PDF and DOCX documents are supported.");
             await Send.ErrorsAsync(StatusCodes.Status415UnsupportedMediaType, ct);
             return;
         }
@@ -64,19 +66,19 @@ internal sealed class UploadDocumentEndpoint(
             : Path.GetFileNameWithoutExtension(file.FileName);
 
         await using var stream = file.OpenReadStream();
-        var storagePath = await storage.StoreAsync(stream, documentId, extension, ct);
+        var storagePath = await storage.StoreAsync(stream, documentId, kind.Value.PreferredExtension, ct);
 
         var doc = new Document
         {
             Id = documentId,
             Title = title,
             OriginalFileName = Path.GetFileName(file.FileName),
-            ContentType = PdfContentType,
+            ContentType = kind.Value.ContentType,
             PageCount = 0,
             StoragePath = storagePath,
             UploadedById = uploaderId,
             UploadedAtUtc = clock.GetUtcNow(),
-            Status = DocumentStatus.Ready,
+            Status = kind.Value.IsPdf ? DocumentStatus.Ready : DocumentStatus.Converting,
         };
         db.Documents.Add(doc);
         await db.SaveChangesAsync(ct);
@@ -94,7 +96,18 @@ internal sealed class UploadDocumentEndpoint(
             ct);
     }
 
-    private static bool IsSupported(string? contentType, string extension) =>
-        string.Equals(contentType, PdfContentType, StringComparison.OrdinalIgnoreCase) ||
-        string.Equals(extension, ".pdf", StringComparison.OrdinalIgnoreCase);
+    private static UploadKind? Classify(string? contentType, string extension)
+    {
+        if (string.Equals(contentType, PdfContentType, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(extension, ".pdf", StringComparison.OrdinalIgnoreCase))
+            return new UploadKind(PdfContentType, ".pdf", IsPdf: true);
+
+        if (string.Equals(contentType, DocxContentType, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(extension, ".docx", StringComparison.OrdinalIgnoreCase))
+            return new UploadKind(DocxContentType, ".docx", IsPdf: false);
+
+        return null;
+    }
+
+    private readonly record struct UploadKind(string ContentType, string PreferredExtension, bool IsPdf);
 }

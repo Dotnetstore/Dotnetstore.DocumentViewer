@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Runtime.Versioning;
 using System.Text;
+using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Conversion;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Identity;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Persistence;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Persistence.Entities;
@@ -112,6 +113,15 @@ builder.Services
     .ValidateOnStart();
 builder.Services.AddSingleton<ISignedUrlService, SignedUrlService>();
 builder.Services.AddSingleton<IPdfPageRenderer, PdfPageRenderer>();
+
+// DOCX -> PDF conversion via LibreOffice (soffice). DocumentConversionWorker is a
+// hosted service that polls Status=Converting documents and runs the converter.
+// LibreOffice must be installed on the WebApi host (or routed via the configured SofficePath).
+builder.Services
+    .AddOptions<DocumentConversionOptions>()
+    .Bind(builder.Configuration.GetSection(DocumentConversionOptions.SectionName));
+builder.Services.AddSingleton<IDocumentConverter, SofficeDocumentConverter>();
+builder.Services.AddHostedService<DocumentConversionWorker>();
 
 // FastEndpoints
 builder.Services.AddFastEndpoints();

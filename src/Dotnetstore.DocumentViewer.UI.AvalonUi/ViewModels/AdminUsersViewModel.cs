@@ -25,6 +25,10 @@ public sealed partial class AdminUsersViewModel(IDocumentViewerApiClient api) : 
     [ObservableProperty] private bool _formIsAdmin;
     [ObservableProperty] private bool _formIsViewer = true;
 
+    // Admin reset-password flow (for the currently selected user).
+    [ObservableProperty] private string _resetNewPassword = string.Empty;
+    [ObservableProperty] private string? _resetStatusMessage;
+
     public bool IsCreatingNew => IsEditing && SelectedUser is null;
 
     public async Task LoadAsync(CancellationToken ct = default)
@@ -138,6 +142,31 @@ public sealed partial class AdminUsersViewModel(IDocumentViewerApiClient api) : 
     }
 
     [RelayCommand]
+    private async Task ResetPassword()
+    {
+        if (SelectedUser is null) return;
+        ErrorMessage = null;
+        ResetStatusMessage = null;
+        if (ResetNewPassword.Length < 8)
+        {
+            ErrorMessage = "Reset password must be at least 8 characters.";
+            return;
+        }
+        IsBusy = true;
+        try
+        {
+            await api.ResetUserPasswordAsync(SelectedUser.Id, new ResetPasswordRequest(ResetNewPassword));
+            ResetNewPassword = string.Empty;
+            ResetStatusMessage = $"Password reset. {SelectedUser.Email} must change it on next login.";
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = ex.Message;
+        }
+        finally { IsBusy = false; }
+    }
+
+    [RelayCommand]
     private Task Refresh() => LoadAsync();
 
     private void ResetForm()
@@ -147,6 +176,8 @@ public sealed partial class AdminUsersViewModel(IDocumentViewerApiClient api) : 
         FormPassword = string.Empty;
         FormIsAdmin = false;
         FormIsViewer = true;
+        ResetNewPassword = string.Empty;
+        ResetStatusMessage = null;
     }
 
     private IReadOnlyList<string> BuildRoles()

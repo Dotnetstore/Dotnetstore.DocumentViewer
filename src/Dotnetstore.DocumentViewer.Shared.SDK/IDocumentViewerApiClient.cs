@@ -25,6 +25,7 @@ public interface IDocumentViewerApiClient
     Task<UserDto> CreateUserAsync(CreateUserRequest request, CancellationToken ct = default);
     Task<UserDto> UpdateUserAsync(Guid id, UpdateUserRequest request, CancellationToken ct = default);
     Task DeleteUserAsync(Guid id, CancellationToken ct = default);
+    Task ResetUserPasswordAsync(Guid id, ResetPasswordRequest request, CancellationToken ct = default);
 
     // Access
     Task<DocumentAccessDto> GrantAccessAsync(Guid documentId, GrantAccessRequest request, CancellationToken ct = default);

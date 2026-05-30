@@ -39,6 +39,9 @@ internal sealed class NavigationService(IServiceProvider services) : INavigation
         Set(vm);
     }
 
+    public void NavigateToChangePassword() =>
+        Set(services.GetRequiredService<ChangePasswordViewModel>());
+
     private void Set(ObservableObject vm)
     {
         CurrentView = vm;

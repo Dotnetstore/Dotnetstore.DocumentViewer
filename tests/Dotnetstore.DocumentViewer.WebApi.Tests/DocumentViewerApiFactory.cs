@@ -2,10 +2,14 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Dotnetstore.DocumentViewer.Shared.SDK.Dtos.Auth;
 using Dotnetstore.DocumentViewer.Shared.SDK.Dtos.Users;
+using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Conversion;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Identity;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Testcontainers.PostgreSql;
 
 namespace Dotnetstore.DocumentViewer.WebApi.Tests;
@@ -64,6 +68,18 @@ public sealed class DocumentViewerApiFactory : WebApplicationFactory<Program>, I
                 ["Seed:Admin:Password"] = AdminPassword,
             });
         });
+
+        // The DocumentConversionWorker hosted service shells out to LibreOffice. Tests
+        // can't assume soffice is installed, so we remove the worker registration entirely.
+        // DOCX upload tests assert the initial Status=Converting without waiting for the
+        // worker to run.
+        builder.ConfigureTestServices(services =>
+        {
+            var worker = services.FirstOrDefault(s =>
+                s.ServiceType == typeof(IHostedService) &&
+                s.ImplementationType == typeof(DocumentConversionWorker));
+            if (worker is not null) services.Remove(worker);
+        });
     }
 
     /// <summary>Client with the test API key attached but no JWT.</summary>
@@ -120,4 +136,8 @@ public sealed class DocumentViewerApiFactory : WebApplicationFactory<Program>, I
         var footer = "\n%%EOF\n"u8.ToArray();
         return [.. header, .. payload, .. footer];
     }
+
+    /// <summary>Bytes labeled as a DOCX. Like the PDF helper, only enough to pass the content-type gate.</summary>
+    public static byte[] FakeDocxBytes(string label = "sample") =>
+        System.Text.Encoding.UTF8.GetBytes("PK" + label + new string('z', 64));
 }

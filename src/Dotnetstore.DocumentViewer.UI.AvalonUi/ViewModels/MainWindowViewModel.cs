@@ -36,6 +36,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     [RelayCommand] private void GoToDocuments() => _nav.NavigateToDocumentList();
     [RelayCommand] private void GoToAdminUsers() => _nav.NavigateToAdminUsers();
     [RelayCommand] private void GoToAdminAccess() => _nav.NavigateToAdminAccess();
+    [RelayCommand] private void GoToChangePassword() => _nav.NavigateToChangePassword();
 
     [RelayCommand]
     private void SignOut()
@@ -53,5 +54,6 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         public void NavigateToDocument(Guid documentId) { }
         public void NavigateToAdminUsers() { }
         public void NavigateToAdminAccess() { }
+        public void NavigateToChangePassword() { }
     }
 }
