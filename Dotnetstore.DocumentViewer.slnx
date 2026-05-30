@@ -13,6 +13,13 @@
     <Project Path="src/Dotnetstore.DocumentViewer.Shared.SDK/Dotnetstore.DocumentViewer.Shared.SDK.csproj" />
     <Project Path="tests/Dotnetstore.DocumentViewer.Shared.SDK.Tests/Dotnetstore.DocumentViewer.Shared.SDK.Tests.csproj" />
   </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path=".gitignore" />
+    <File Path="Directory.Build.props" />
+    <File Path="LICENSE" />
+    <File Path="PLAN.md" />
+    <File Path="README.md" />
+  </Folder>
   <Folder Name="/UI/">
     <Project Path="src/Dotnetstore.DocumentViewer.UI.AvalonUi/Dotnetstore.DocumentViewer.UI.AvalonUi.csproj" />
     <Project Path="tests/Dotnetstore.DocumentViewer.UI.AvalonUi.Tests/Dotnetstore.DocumentViewer.UI.AvalonUi.Tests.csproj" />
