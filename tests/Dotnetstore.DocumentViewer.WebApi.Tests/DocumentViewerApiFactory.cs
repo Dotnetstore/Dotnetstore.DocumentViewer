@@ -14,7 +14,7 @@ using Testcontainers.PostgreSql;
 
 namespace Dotnetstore.DocumentViewer.WebApi.Tests;
 
-public sealed class DocumentViewerApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
+public class DocumentViewerApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
     public const string ApiKey = "test-api-key-please-pretend-this-is-random";
     public const string JwtSigningKey = "test-signing-key-that-is-at-least-32-characters-long-aaaaaaaaaa";
