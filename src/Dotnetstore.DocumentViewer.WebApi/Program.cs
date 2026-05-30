@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Runtime.Versioning;
 using System.Text;
+using System.Threading.RateLimiting;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Conversion;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Identity;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Persistence;
@@ -94,6 +95,33 @@ builder.Services
     .Bind(builder.Configuration.GetSection(ApiKeyOptions.SectionName))
     .ValidateOnStart();
 
+// Rate limiting. Per-IP fixed-window on the auth endpoints to slow brute-force
+// password attempts. The partition key honours X-Forwarded-For first so deployments
+// behind a trusted reverse proxy throttle by the real client IP, not the proxy's.
+builder.Services
+    .AddOptions<RateLimitingOptions>()
+    .Bind(builder.Configuration.GetSection(RateLimitingOptions.SectionName));
+
+builder.Services.AddRateLimiter(rl =>
+{
+    rl.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    rl.AddPolicy(RateLimitingOptions.AuthPolicy, httpContext =>
+    {
+        var rlOpts = httpContext.RequestServices
+            .GetRequiredService<IOptions<RateLimitingOptions>>().Value.Auth;
+        var key = httpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault()
+                  ?? httpContext.Connection.RemoteIpAddress?.ToString()
+                  ?? "unknown";
+        return RateLimitPartition.GetFixedWindowLimiter(key, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = rlOpts.PermitLimit,
+            Window = rlOpts.Window,
+            QueueLimit = 0,
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+        });
+    });
+});
+
 // Seed admin
 builder.Services
     .AddOptions<SeedAdminOptions>()
@@ -142,6 +170,7 @@ app.UseExceptionHandler();
 app.UseStatusCodePages();
 
 app.UseMiddleware<ApiKeyMiddleware>();
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 

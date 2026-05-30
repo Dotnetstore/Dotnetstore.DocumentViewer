@@ -2,6 +2,7 @@ using Dotnetstore.DocumentViewer.Shared.SDK.Dtos.Auth;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Identity;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Persistence;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Persistence.Entities;
+using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Security;
 using FastEndpoints;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -18,6 +19,7 @@ internal sealed class RefreshTokenEndpoint(
     {
         Post("/auth/refresh");
         AllowAnonymous();
+        Options(b => b.RequireRateLimiting(RateLimitingOptions.AuthPolicy));
         Description(b => b.WithTags("Auth"));
     }
 

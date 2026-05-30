@@ -1,4 +1,5 @@
 using Dotnetstore.DocumentViewer.Shared.SDK.Dtos.Access;
+using Dotnetstore.DocumentViewer.Shared.SDK.Dtos.Audit;
 using Dotnetstore.DocumentViewer.Shared.SDK.Dtos.Auth;
 using Dotnetstore.DocumentViewer.Shared.SDK.Dtos.Documents;
 using Dotnetstore.DocumentViewer.Shared.SDK.Dtos.Users;
@@ -31,4 +32,15 @@ public interface IDocumentViewerApiClient
     Task<DocumentAccessDto> GrantAccessAsync(Guid documentId, GrantAccessRequest request, CancellationToken ct = default);
     Task RevokeAccessAsync(Guid documentId, Guid userId, CancellationToken ct = default);
     Task<IReadOnlyList<DocumentAccessDto>> ListAccessForDocumentAsync(Guid documentId, CancellationToken ct = default);
+
+    // Audit log (Admin)
+    Task<IReadOnlyList<AuditLogEntryDto>> QueryAuditLogAsync(AuditLogQuery query, CancellationToken ct = default);
 }
+
+public sealed record AuditLogQuery(
+    Guid? UserId = null,
+    Guid? DocumentId = null,
+    string? Action = null,
+    DateTimeOffset? FromUtc = null,
+    DateTimeOffset? ToUtc = null,
+    int? Take = null);

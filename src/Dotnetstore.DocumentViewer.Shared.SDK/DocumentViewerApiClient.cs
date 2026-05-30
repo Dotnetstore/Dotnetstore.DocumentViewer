@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Dotnetstore.DocumentViewer.Shared.SDK.Dtos.Access;
+using Dotnetstore.DocumentViewer.Shared.SDK.Dtos.Audit;
 using Dotnetstore.DocumentViewer.Shared.SDK.Dtos.Auth;
 using Dotnetstore.DocumentViewer.Shared.SDK.Dtos.Documents;
 using Dotnetstore.DocumentViewer.Shared.SDK.Dtos.Users;
@@ -90,6 +91,19 @@ internal sealed class DocumentViewerApiClient(HttpClient http) : IDocumentViewer
 
     public async Task<IReadOnlyList<DocumentAccessDto>> ListAccessForDocumentAsync(Guid documentId, CancellationToken ct = default) =>
         await GetJson<List<DocumentAccessDto>>($"/documents/{documentId}/access", ct);
+
+    public async Task<IReadOnlyList<AuditLogEntryDto>> QueryAuditLogAsync(AuditLogQuery query, CancellationToken ct = default)
+    {
+        var qs = new List<string>();
+        if (query.UserId.HasValue) qs.Add($"userId={query.UserId.Value}");
+        if (query.DocumentId.HasValue) qs.Add($"documentId={query.DocumentId.Value}");
+        if (!string.IsNullOrWhiteSpace(query.Action)) qs.Add($"action={Uri.EscapeDataString(query.Action)}");
+        if (query.FromUtc.HasValue) qs.Add($"fromUtc={Uri.EscapeDataString(query.FromUtc.Value.ToString("o"))}");
+        if (query.ToUtc.HasValue) qs.Add($"toUtc={Uri.EscapeDataString(query.ToUtc.Value.ToString("o"))}");
+        if (query.Take.HasValue) qs.Add($"take={query.Take.Value}");
+        var url = "/audit-log" + (qs.Count > 0 ? "?" + string.Join('&', qs) : "");
+        return await GetJson<List<AuditLogEntryDto>>(url, ct);
+    }
 
     private async Task<TResponse> GetJson<TResponse>(string path, CancellationToken ct)
     {

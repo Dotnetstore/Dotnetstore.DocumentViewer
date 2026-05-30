@@ -66,6 +66,11 @@ public sealed class DocumentViewerApiFactory : WebApplicationFactory<Program>, I
                 ["DocumentStorage:RootPath"] = _storageRoot,
                 ["Seed:Admin:Email"] = AdminEmail,
                 ["Seed:Admin:Password"] = AdminPassword,
+                // Effectively disable per-IP auth rate limiting for the shared test fixture —
+                // ~50+ admin logins across the collection would otherwise saturate the bucket.
+                // Dedicated rate-limit tests can override via X-Forwarded-For to isolate.
+                ["RateLimiting:Auth:PermitLimit"] = "10000",
+                ["RateLimiting:Auth:Window"] = "00:00:30",
             });
         });
 

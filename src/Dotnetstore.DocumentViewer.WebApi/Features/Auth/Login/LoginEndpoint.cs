@@ -1,6 +1,7 @@
 using Dotnetstore.DocumentViewer.Shared.SDK.Dtos.Auth;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Identity;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Persistence.Entities;
+using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Security;
 using FastEndpoints;
 using Microsoft.AspNetCore.Identity;
 
@@ -15,6 +16,7 @@ internal sealed class LoginEndpoint(
     {
         Post("/auth/login");
         AllowAnonymous();
+        Options(b => b.RequireRateLimiting(RateLimitingOptions.AuthPolicy));
         Description(b => b.WithTags("Auth"));
     }
 
