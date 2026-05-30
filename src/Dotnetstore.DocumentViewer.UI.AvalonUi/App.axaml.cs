@@ -1,47 +1,58 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Data.Core;
 using Avalonia.Data.Core.Plugins;
 using System.Linq;
 using Avalonia.Markup.Xaml;
+using Dotnetstore.DocumentViewer.Shared.SDK;
+using Dotnetstore.DocumentViewer.UI.AvalonUi.Services;
 using Dotnetstore.DocumentViewer.UI.AvalonUi.ViewModels;
 using Dotnetstore.DocumentViewer.UI.AvalonUi.Views;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Dotnetstore.DocumentViewer.UI.AvalonUi;
 
 public partial class App : Application
 {
-    public override void Initialize()
-    {
-        AvaloniaXamlLoader.Load(this);
-    }
+    public IServiceProvider? Services { get; private set; }
+
+    public override void Initialize() => AvaloniaXamlLoader.Load(this);
 
     public override void OnFrameworkInitializationCompleted()
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            // Avoid duplicate validations from both Avalonia and the CommunityToolkit. 
-            // More info: https://docs.avaloniaui.net/docs/guides/development-guides/data-validation#manage-validationplugins
             DisableAvaloniaDataAnnotationValidation();
+
+            var configuration = new ConfigurationBuilder()
+                .AddJsonFile("appsettings.json", optional: true)
+                .AddEnvironmentVariables()
+                .Build();
+
+            var services = new ServiceCollection();
+            services.AddSingleton<IConfiguration>(configuration);
+            services.AddDocumentViewerSdk(configuration);
+            services.AddSingleton<INavigationService, NavigationService>();
+            services.AddSingleton<MainWindowViewModel>();
+            services.AddTransient<LoginViewModel>();
+            services.AddTransient<DocumentListViewModel>();
+            services.AddTransient<DocumentViewerViewModel>();
+
+            Services = services.BuildServiceProvider();
+
             desktop.MainWindow = new MainWindow
             {
-                DataContext = new MainWindowViewModel(),
+                DataContext = Services.GetRequiredService<MainWindowViewModel>(),
             };
         }
 
         base.OnFrameworkInitializationCompleted();
     }
 
-    private void DisableAvaloniaDataAnnotationValidation()
+    private static void DisableAvaloniaDataAnnotationValidation()
     {
-        // Get an array of plugins to remove
-        var dataValidationPluginsToRemove =
-            BindingPlugins.DataValidators.OfType<DataAnnotationsValidationPlugin>().ToArray();
-
-        // remove each entry found
-        foreach (var plugin in dataValidationPluginsToRemove)
-        {
+        var toRemove = BindingPlugins.DataValidators.OfType<DataAnnotationsValidationPlugin>().ToArray();
+        foreach (var plugin in toRemove)
             BindingPlugins.DataValidators.Remove(plugin);
-        }
     }
 }

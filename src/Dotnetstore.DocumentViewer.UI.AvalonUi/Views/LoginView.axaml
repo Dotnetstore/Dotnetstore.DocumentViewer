@@ -1,0 +1,22 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Dotnetstore.DocumentViewer.UI.AvalonUi.ViewModels"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="350"
+             x:Class="Dotnetstore.DocumentViewer.UI.AvalonUi.Views.LoginView"
+             x:DataType="vm:LoginViewModel">
+
+    <StackPanel Margin="32" Spacing="12" Width="360" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <TextBlock Text="Sign in" FontSize="22" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+        <TextBox Text="{Binding Email, Mode=TwoWay}" Watermark="Email" />
+        <TextBox Text="{Binding Password, Mode=TwoWay}" Watermark="Password" PasswordChar="●" />
+        <Button Content="Sign in"
+                Command="{Binding LoginCommand}"
+                IsEnabled="{Binding LoginCommand.CanExecute}"
+                HorizontalAlignment="Stretch"/>
+        <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsBusy}" />
+        <TextBlock Text="{Binding ErrorMessage}" Foreground="Crimson" TextWrapping="Wrap"
+                   IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+    </StackPanel>
+</UserControl>
