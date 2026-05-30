@@ -142,13 +142,32 @@ builder.Services
 builder.Services.AddSingleton<ISignedUrlService, SignedUrlService>();
 builder.Services.AddSingleton<IPdfPageRenderer, PdfPageRenderer>();
 
-// DOCX -> PDF conversion via LibreOffice (soffice). DocumentConversionWorker is a
-// hosted service that polls Status=Converting documents and runs the converter.
-// LibreOffice must be installed on the WebApi host (or routed via the configured SofficePath).
+// DOCX -> PDF conversion. Default mode is Gotenberg: the AppHost runs a gotenberg
+// container and WebApi calls it via service discovery (http://gotenberg). The Soffice
+// fallback shells out to a locally-installed LibreOffice binary. DocumentConversionWorker
+// is a hosted service that polls Status=Converting documents and runs the converter.
 builder.Services
     .AddOptions<DocumentConversionOptions>()
     .Bind(builder.Configuration.GetSection(DocumentConversionOptions.SectionName));
-builder.Services.AddSingleton<IDocumentConverter, SofficeDocumentConverter>();
+
+var conversionMode = builder.Configuration
+    .GetValue<DocumentConversionMode>($"{DocumentConversionOptions.SectionName}:Mode",
+        DocumentConversionMode.Gotenberg);
+
+if (conversionMode == DocumentConversionMode.Gotenberg)
+{
+    builder.Services.AddHttpClient<IDocumentConverter, GotenbergDocumentConverter>((sp, http) =>
+    {
+        var opts = sp.GetRequiredService<IOptions<DocumentConversionOptions>>().Value;
+        http.BaseAddress = new Uri(opts.Gotenberg.BaseAddress);
+        http.Timeout = opts.ConversionTimeout;
+    });
+}
+else
+{
+    builder.Services.AddSingleton<IDocumentConverter, SofficeDocumentConverter>();
+}
+
 builder.Services.AddHostedService<DocumentConversionWorker>();
 
 // FastEndpoints

@@ -5,8 +5,8 @@ A secure document viewer: an admin uploads PDFs (or DOCX, converted server-side)
 ## Stack
 
 - **.NET 10** across the board (`net10.0`).
-- **WebApi** — FastEndpoints vertical slices, EF Core + Npgsql, ASP.NET Identity + JWT bearer, PDFtoImage + SkiaSharp for server-side rasterization + watermarking, LibreOffice (`soffice`) for DOCX → PDF conversion.
-- **Aspire AppHost** — orchestrates a Postgres container (with pgAdmin), the WebApi, and the Avalonia UI; injects an `api-key` parameter into both.
+- **WebApi** — FastEndpoints vertical slices, EF Core + Npgsql, ASP.NET Identity + JWT bearer, PDFtoImage + SkiaSharp for server-side rasterization + watermarking, Gotenberg (LibreOffice in a container, default) or local `soffice` for DOCX → PDF conversion.
+- **Aspire AppHost** — orchestrates a Postgres container (with pgAdmin), a Gotenberg container, the WebApi, and the Avalonia UI; injects an `api-key` parameter into both apps.
 - **Avalonia 11 + CommunityToolkit.Mvvm** for the desktop viewer.
 - **Shared SDK** — wire DTOs + typed `HttpClient` (`IDocumentViewerApiClient`) with `X-Api-Key` and `Bearer` DelegatingHandlers, consumable by any .NET client.
 - **Tests** — xUnit v3 + `WebApplicationFactory` + Testcontainers.PostgreSQL on the WebApi side; 30+ integration tests cover auth, users, documents, access, signed-URL/render auth matrix, audit log, password reset, and DOCX upload.
@@ -42,7 +42,7 @@ This product makes a **practical** "view-only" guarantee, not an unbreakable one
 - **Set strong secrets via user-secrets, not committed config.**
   - AppHost parameter: `dotnet user-secrets set Parameters:api-key <random> --project src/Dotnetstore.DocumentViewer.Shared.AppHost`
   - WebApi (if running standalone): `Jwt:SigningKey`, `ApiKey:Value`, `SignedUrl:SigningKey`, `Seed:Admin:Password` — `dotnet user-secrets set <key> <value> --project src/Dotnetstore.DocumentViewer.WebApi`
-- **LibreOffice required for DOCX conversion.** Without it, DOCX uploads stay in `Status=Converting` until the worker tries them and flips them to `Failed`. Install `libreoffice-core libreoffice-writer` on the WebApi host (or override `DocumentConversion:SofficePath`).
+- **DOCX conversion runs via the bundled Gotenberg container** that the AppHost starts alongside the WebApi. WebApi resolves it through Aspire service discovery (`http://gotenberg`) and POSTs DOCX to `/forms/libreoffice/convert`. Set `DocumentConversion:Mode=Soffice` to shell out to a locally-installed `soffice` binary instead — useful if you can't run a sidecar container.
 - **HTTPS termination matters for rate limiting.** Behind a reverse proxy, configure forwarded-headers so `X-Forwarded-For` reflects the real client IP and rate-limit partitions don't all collapse to the proxy address.
 
 ## Running locally
@@ -56,7 +56,7 @@ dotnet user-secrets set Parameters:api-key <random> `
 dotnet run --project src/Dotnetstore.DocumentViewer.Shared.AppHost
 ```
 
-The terminal prints a login URL for the Aspire dashboard. Resources come up in this order: `postgres` → `postgres-pgadmin` → `webApi` (migrations + admin seed run on startup) → `ui` (Avalonia window pops automatically).
+The terminal prints a login URL for the Aspire dashboard. Resources come up in this order: `postgres` → `postgres-pgadmin` → `gotenberg` → `webApi` (migrations + admin seed run on startup) → `ui` (Avalonia window pops automatically). First run pulls the Gotenberg image (~600 MB) and the Postgres image, so give it a minute.
 
 Default dev seed admin: `admin@dotnetstore.local` / `ChangeMe123!` — with `MustChangePassword=true`, so the first login forces a change.
 

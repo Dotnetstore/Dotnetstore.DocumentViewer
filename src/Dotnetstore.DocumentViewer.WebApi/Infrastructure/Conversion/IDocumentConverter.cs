@@ -3,8 +3,9 @@ namespace Dotnetstore.DocumentViewer.WebApi.Infrastructure.Conversion;
 public interface IDocumentConverter
 {
     /// <summary>
-    /// Converts an Office document (typically .docx) to PDF and returns the absolute path
-    /// to the produced PDF. The caller is responsible for moving it into final storage.
+    /// Converts an Office document (typically .docx) to PDF bytes. The implementation
+    /// owns any temp-file management; the caller hands over the source stream and an
+    /// indicative filename (extension matters — Gotenberg + LibreOffice both branch on it).
     /// </summary>
-    Task<string> ConvertToPdfAsync(string inputPath, string outputDirectory, CancellationToken ct);
+    Task<byte[]> ConvertToPdfAsync(Stream input, string sourceFileName, CancellationToken ct);
 }

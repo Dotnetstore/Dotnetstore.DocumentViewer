@@ -5,9 +5,9 @@ namespace Dotnetstore.DocumentViewer.WebApi.Infrastructure.Conversion;
 
 /// <summary>
 /// Converts documents by shelling out to LibreOffice's `soffice --headless --convert-to pdf`.
-/// LibreOffice must be installed and resolvable via DocumentConversion:SofficePath (defaults to
-/// looking it up on PATH). Production deployments typically install libreoffice-core +
-/// libreoffice-writer on the WebApi host (or run it in a sidecar container).
+/// LibreOffice must be installed on the WebApi host and resolvable via DocumentConversion:SofficePath.
+/// The preferred deployment uses Gotenberg in a container instead (see GotenbergDocumentConverter);
+/// this implementation remains for hosts that already have LibreOffice locally.
 /// </summary>
 internal sealed class SofficeDocumentConverter(
     IOptions<DocumentConversionOptions> options,
@@ -15,13 +15,32 @@ internal sealed class SofficeDocumentConverter(
 {
     private readonly DocumentConversionOptions _options = options.Value;
 
-    public async Task<string> ConvertToPdfAsync(string inputPath, string outputDirectory, CancellationToken ct)
+    public async Task<byte[]> ConvertToPdfAsync(Stream input, string sourceFileName, CancellationToken ct)
     {
-        Directory.CreateDirectory(outputDirectory);
+        var workDir = Path.Combine(Path.GetTempPath(), "dv-soffice-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(workDir);
+        var inputPath = Path.Combine(workDir, sourceFileName);
+        try
+        {
+            await using (var inFile = new FileStream(inputPath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+            {
+                await input.CopyToAsync(inFile, ct);
+            }
 
+            var pdfPath = await RunSofficeAsync(inputPath, workDir, ct);
+            return await File.ReadAllBytesAsync(pdfPath, ct);
+        }
+        finally
+        {
+            try { Directory.Delete(workDir, recursive: true); } catch { /* best-effort cleanup */ }
+        }
+    }
+
+    private async Task<string> RunSofficeAsync(string inputPath, string outputDirectory, CancellationToken ct)
+    {
         var psi = new ProcessStartInfo
         {
-            FileName = _options.SofficePath,
+            FileName = _options.Soffice.SofficePath,
             UseShellExecute = false,
             RedirectStandardOutput = true,
             RedirectStandardError = true,

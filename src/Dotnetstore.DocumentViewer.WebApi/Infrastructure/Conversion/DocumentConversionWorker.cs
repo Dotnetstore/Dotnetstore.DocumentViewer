@@ -1,6 +1,5 @@
 using Dotnetstore.DocumentViewer.Shared.SDK.Dtos.Documents;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Persistence;
-using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Persistence.Entities;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Rendering;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Storage;
 using Microsoft.EntityFrameworkCore;
@@ -51,7 +50,6 @@ internal sealed class DocumentConversionWorker(
         var storage = scope.ServiceProvider.GetRequiredService<IDocumentStorage>();
         var converter = scope.ServiceProvider.GetRequiredService<IDocumentConverter>();
         var renderer = scope.ServiceProvider.GetService<IPdfPageRenderer>();
-        var storageOptions = scope.ServiceProvider.GetRequiredService<IOptions<DocumentStorageOptions>>().Value;
 
         var doc = await db.Documents
             .Where(d => d.Status == DocumentStatus.Converting)
@@ -64,20 +62,18 @@ internal sealed class DocumentConversionWorker(
 
         try
         {
-            // Resolve current file path via storage and run soffice on it.
-            using var input = storage.OpenRead(doc.StoragePath);
-            var tempDir = Path.Combine(Path.GetTempPath(), "dv-convert-" + Guid.NewGuid().ToString("N"));
-            Directory.CreateDirectory(tempDir);
-            var inputCopy = Path.Combine(tempDir, doc.Id.ToString("N") + Path.GetExtension(doc.OriginalFileName));
-            await using (var fs = new FileStream(inputCopy, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+            byte[] pdfBytes;
+            await using (var input = storage.OpenRead(doc.StoragePath))
             {
-                await input.CopyToAsync(fs, ct);
+                pdfBytes = await converter.ConvertToPdfAsync(input, doc.OriginalFileName, ct);
             }
 
-            var pdfPath = await converter.ConvertToPdfAsync(inputCopy, tempDir, ct);
-
             // Store the produced PDF under a fresh id-derived path, then point the document at it.
-            var newStoragePath = await StoreProducedPdfAsync(pdfPath, storage, doc.Id, ct);
+            string newStoragePath;
+            await using (var pdfStream = new MemoryStream(pdfBytes))
+            {
+                newStoragePath = await storage.StoreAsync(pdfStream, doc.Id, ".pdf", ct);
+            }
 
             // Best-effort: backfill PageCount immediately for the freshly produced PDF.
             int pageCount = 0;
@@ -94,7 +90,8 @@ internal sealed class DocumentConversionWorker(
                 }
             }
 
-            // Remove the original DOCX (if storage path differs).
+            // Remove the original DOCX (storage path always differs because StoreAsync uses
+            // a fresh id-derived name; defensive check just in case).
             if (!string.Equals(doc.StoragePath, newStoragePath, StringComparison.Ordinal))
             {
                 try { storage.Delete(doc.StoragePath); }
@@ -107,7 +104,6 @@ internal sealed class DocumentConversionWorker(
             if (pageCount > 0) doc.PageCount = pageCount;
             await db.SaveChangesAsync(ct);
 
-            TryDeleteDirectory(tempDir);
             logger.LogInformation("Converted document {DocumentId} → {PageCount} page(s).", doc.Id, pageCount);
         }
         catch (Exception ex)
@@ -116,18 +112,5 @@ internal sealed class DocumentConversionWorker(
             doc.Status = DocumentStatus.Failed;
             await db.SaveChangesAsync(ct);
         }
-    }
-
-    private static async Task<string> StoreProducedPdfAsync(
-        string producedAbsolutePath, IDocumentStorage storage, Guid documentId, CancellationToken ct)
-    {
-        await using var pdfStream = new FileStream(producedAbsolutePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-        return await storage.StoreAsync(pdfStream, documentId, ".pdf", ct);
-    }
-
-    private static void TryDeleteDirectory(string path)
-    {
-        try { if (Directory.Exists(path)) Directory.Delete(path, recursive: true); }
-        catch { /* best-effort cleanup */ }
     }
 }
