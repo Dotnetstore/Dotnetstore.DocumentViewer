@@ -1,2 +1,20 @@
 <Solution>
+  <Folder Name="/Api/">
+    <Project Path="src/Dotnetstore.DocumentViewer.WebApi/Dotnetstore.DocumentViewer.WebApi.csproj" />
+    <Project Path="tests/Dotnetstore.DocumentViewer.WebApi.Tests/Dotnetstore.DocumentViewer.WebApi.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Shared/" />
+  <Folder Name="/Shared/Aspire/">
+    <Project Path="src/Dotnetstore.DocumentViewer.Shared.AppHost/Dotnetstore.DocumentViewer.Shared.AppHost.csproj" />
+    <Project Path="src/Dotnetstore.DocumentViewer.Shared.ServiceDefaults/Dotnetstore.DocumentViewer.Shared.ServiceDefaults.csproj" />
+    <Project Path="tests/Dotnetstore.DocumentViewer.Shared.AppHost.Tests/Dotnetstore.DocumentViewer.Shared.AppHost.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Shared/SDK/">
+    <Project Path="src/Dotnetstore.DocumentViewer.Shared.SDK/Dotnetstore.DocumentViewer.Shared.SDK.csproj" />
+    <Project Path="tests/Dotnetstore.DocumentViewer.Shared.SDK.Tests/Dotnetstore.DocumentViewer.Shared.SDK.Tests.csproj" />
+  </Folder>
+  <Folder Name="/UI/">
+    <Project Path="src/Dotnetstore.DocumentViewer.UI.AvalonUi/Dotnetstore.DocumentViewer.UI.AvalonUi.csproj" />
+    <Project Path="tests/Dotnetstore.DocumentViewer.UI.AvalonUi.Tests/Dotnetstore.DocumentViewer.UI.AvalonUi.Tests.csproj" />
+  </Folder>
 </Solution>

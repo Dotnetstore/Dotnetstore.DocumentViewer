@@ -1,0 +1,16 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.3.5">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <UserSecretsId>128c31ef-1336-46c9-acb0-7db5a0609cfc</UserSecretsId>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Dotnetstore.DocumentViewer.UI.AvalonUi\Dotnetstore.DocumentViewer.UI.AvalonUi.csproj" />
+      <ProjectReference Include="..\Dotnetstore.DocumentViewer.WebApi\Dotnetstore.DocumentViewer.WebApi.csproj" />
+    </ItemGroup>
+
+</Project>
