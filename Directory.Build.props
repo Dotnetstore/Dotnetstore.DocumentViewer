@@ -1,0 +1,28 @@
+<Project>
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <LangVersion>default</LangVersion>
+        <Authors>Dotnetstore (Hans Sjödin)</Authors>
+        <Copyright>Dotnetstore</Copyright>
+        <Company>Dotnetstore</Company>
+        <UserSecretsId>CF0334B9-FF6F-4D9A-85F3-76EB4C37BDBF</UserSecretsId>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+            <_Parameter1>$(MSBuildProjectName).Tests</_Parameter1>
+        </AssemblyAttribute>
+        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+            <_Parameter1>$(MSBuildProjectName).Tests.Integration</_Parameter1>
+        </AssemblyAttribute>
+    </ItemGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+        <WarningLevel>9999</WarningLevel>
+        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    </PropertyGroup>
+
+</Project>
