@@ -13,6 +13,7 @@ public interface IDocumentViewerApiClient
     Task<TokenResponse> RefreshAsync(RefreshTokenRequest request, CancellationToken ct = default);
     Task<MeResponse> MeAsync(CancellationToken ct = default);
     Task ChangePasswordAsync(ChangePasswordRequest request, CancellationToken ct = default);
+    Task LogoutAsync(LogoutRequest request, CancellationToken ct = default);
 
     // Documents
     Task<IReadOnlyList<DocumentDto>> ListDocumentsAsync(CancellationToken ct = default);

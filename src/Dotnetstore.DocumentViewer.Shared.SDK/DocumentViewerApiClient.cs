@@ -25,6 +25,12 @@ internal sealed class DocumentViewerApiClient(HttpClient http) : IDocumentViewer
         response.EnsureSuccessStatusCode();
     }
 
+    public async Task LogoutAsync(LogoutRequest request, CancellationToken ct = default)
+    {
+        using var response = await http.PostAsJsonAsync("/auth/logout", request, ct);
+        response.EnsureSuccessStatusCode();
+    }
+
     public async Task<IReadOnlyList<DocumentDto>> ListDocumentsAsync(CancellationToken ct = default) =>
         await GetJson<List<DocumentDto>>("/documents", ct);
 
