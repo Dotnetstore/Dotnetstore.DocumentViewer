@@ -1,5 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Caching;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Identity;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Persistence;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Persistence.Entities;
@@ -15,6 +16,7 @@ internal sealed class RenderPageEndpoint(
     AppDbContext db,
     IDocumentStorage storage,
     IPdfPageRenderer renderer,
+    IPageImageCache cache,
     ISignedUrlService signer,
     TimeProvider clock) : EndpointWithoutRequest
 {
@@ -83,11 +85,17 @@ internal sealed class RenderPageEndpoint(
         var email = User.FindFirstValue(JwtRegisteredClaimNames.Email) ?? "unknown";
         var watermark = $"{email}  -  {ip ?? "?"}  -  {clock.GetUtcNow():yyyy-MM-dd HH:mm:ss} UTC";
 
-        byte[] png;
-        await using (var pdf = storage.OpenRead(document.StoragePath))
+        // Two-step: rasterized (unwatermarked) PNG is cached on disk per (docId, page);
+        // the per-request watermark is overlaid fresh so each served image carries the
+        // current user's email + ip + UTC timestamp.
+        var rasterized = await cache.TryReadAsync(documentId, page, ct);
+        if (rasterized is null)
         {
-            png = renderer.RenderPagePng(pdf, page, watermark);
+            await using var pdf = storage.OpenRead(document.StoragePath);
+            rasterized = renderer.RasterizePagePng(pdf, page);
+            await cache.WriteAsync(documentId, page, rasterized, ct);
         }
+        var png = renderer.ApplyWatermarkPng(rasterized, watermark);
 
         await AuditAsync(db, "RenderPage", userId, documentId, page, StatusCodes.Status200OK, ip, ct);
 

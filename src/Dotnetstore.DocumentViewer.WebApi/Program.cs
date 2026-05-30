@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Runtime.Versioning;
 using System.Text;
 using System.Threading.RateLimiting;
+using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Caching;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Conversion;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Identity;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Persistence;
@@ -141,6 +142,14 @@ builder.Services
     .ValidateOnStart();
 builder.Services.AddSingleton<ISignedUrlService, SignedUrlService>();
 builder.Services.AddSingleton<IPdfPageRenderer, PdfPageRenderer>();
+
+// Page-image disk cache (un-watermarked PNGs) + LRU eviction worker. Skipping the
+// PDFium rasterization is the cheapest big win for the render endpoint.
+builder.Services
+    .AddOptions<CacheOptions>()
+    .Bind(builder.Configuration.GetSection(CacheOptions.SectionName));
+builder.Services.AddSingleton<IPageImageCache, FileSystemPageImageCache>();
+builder.Services.AddHostedService<CacheEvictionWorker>();
 
 // DOCX -> PDF conversion. Default mode is Gotenberg: the AppHost runs a gotenberg
 // container and WebApi calls it via service discovery (http://gotenberg). The Soffice

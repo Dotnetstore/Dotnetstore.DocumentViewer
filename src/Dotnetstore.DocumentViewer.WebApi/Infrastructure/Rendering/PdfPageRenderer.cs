@@ -19,11 +19,26 @@ internal sealed class PdfPageRenderer : IPdfPageRenderer
 
     public byte[] RenderPagePng(Stream pdf, int page, string watermarkText)
     {
+        var raw = RasterizePagePng(pdf, page);
+        return string.IsNullOrWhiteSpace(watermarkText) ? raw : ApplyWatermarkPng(raw, watermarkText);
+    }
+
+    public byte[] RasterizePagePng(Stream pdf, int page)
+    {
         var options = new RenderOptions { Dpi = RenderDpi, WithAnnotations = true, WithFormFill = false };
         using var bitmap = PDFtoImage.Conversion.ToImage(pdf, page: page, leaveOpen: true, password: null, options: options);
+        using var image = SKImage.FromBitmap(bitmap);
+        using var data = image.Encode(SKEncodedImageFormat.Png, quality: 90);
+        return data.ToArray();
+    }
 
+    public byte[] ApplyWatermarkPng(byte[] inputPng, string watermarkText)
+    {
+        if (string.IsNullOrWhiteSpace(watermarkText)) return inputPng;
+
+        using var bitmap = SKBitmap.Decode(inputPng)
+            ?? throw new InvalidOperationException("Failed to decode cached page PNG.");
         DrawWatermark(bitmap, watermarkText);
-
         using var image = SKImage.FromBitmap(bitmap);
         using var data = image.Encode(SKEncodedImageFormat.Png, quality: 90);
         return data.ToArray();
@@ -31,8 +46,6 @@ internal sealed class PdfPageRenderer : IPdfPageRenderer
 
     private static void DrawWatermark(SKBitmap bitmap, string text)
     {
-        if (string.IsNullOrWhiteSpace(text)) return;
-
         using var canvas = new SKCanvas(bitmap);
         using var font = new SKFont { Size = Math.Max(28f, bitmap.Width * 0.025f) };
         using var paint = new SKPaint { Color = new SKColor(220, 0, 0, 90), IsAntialias = true };
