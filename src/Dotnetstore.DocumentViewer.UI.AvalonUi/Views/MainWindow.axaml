@@ -3,7 +3,7 @@
         xmlns:vm="using:Dotnetstore.DocumentViewer.UI.AvalonUi.ViewModels"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="700"
         x:Class="Dotnetstore.DocumentViewer.UI.AvalonUi.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/avalonia-logo.ico"
@@ -14,6 +14,22 @@
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
-    <ContentControl Content="{Binding CurrentView}" />
+    <Grid RowDefinitions="Auto,*">
+        <Border Grid.Row="0" BorderBrush="#22000000" BorderThickness="0,0,0,1"
+                IsVisible="{Binding IsAuthenticated}">
+            <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto,Auto" Margin="12,6">
+                <Button Grid.Column="0" Content="Documents" Command="{Binding GoToDocumentsCommand}" Margin="0,0,4,0"/>
+                <Button Grid.Column="1" Content="Users" Command="{Binding GoToAdminUsersCommand}"
+                        IsVisible="{Binding IsAdmin}" Margin="0,0,4,0"/>
+                <Button Grid.Column="2" Content="Access" Command="{Binding GoToAdminAccessCommand}"
+                        IsVisible="{Binding IsAdmin}"/>
+                <TextBlock Grid.Column="4" Text="{Binding CurrentUserEmail}" Opacity="0.7"
+                           VerticalAlignment="Center" Margin="0,0,12,0"/>
+                <Button Grid.Column="5" Content="Sign out" Command="{Binding SignOutCommand}"/>
+            </Grid>
+        </Border>
+
+        <ContentControl Grid.Row="1" Content="{Binding CurrentView}"/>
+    </Grid>
 
 </Window>

@@ -10,4 +10,6 @@ public interface INavigationService
     void NavigateToLogin();
     void NavigateToDocumentList();
     void NavigateToDocument(Guid documentId);
+    void NavigateToAdminUsers();
+    void NavigateToAdminAccess();
 }

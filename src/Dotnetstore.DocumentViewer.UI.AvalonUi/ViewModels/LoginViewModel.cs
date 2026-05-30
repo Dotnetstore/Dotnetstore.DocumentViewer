@@ -32,6 +32,9 @@ public sealed partial class LoginViewModel(
         {
             var tokens = await api.LoginAsync(new LoginRequest(Email, Password));
             session.Set(tokens.AccessToken, tokens.AccessTokenExpiresAt, tokens.RefreshToken, tokens.RefreshTokenExpiresAt);
+            // Fetch /auth/me so the shell knows the user's roles before navigating.
+            var me = await api.MeAsync();
+            session.SetMe(me);
             Password = string.Empty;
             nav.NavigateToDocumentList();
         }

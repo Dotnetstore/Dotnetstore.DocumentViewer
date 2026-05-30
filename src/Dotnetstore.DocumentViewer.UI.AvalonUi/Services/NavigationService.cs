@@ -25,6 +25,20 @@ internal sealed class NavigationService(IServiceProvider services) : INavigation
         Set(vm);
     }
 
+    public void NavigateToAdminUsers()
+    {
+        var vm = services.GetRequiredService<AdminUsersViewModel>();
+        _ = vm.LoadAsync();
+        Set(vm);
+    }
+
+    public void NavigateToAdminAccess()
+    {
+        var vm = services.GetRequiredService<AdminAccessViewModel>();
+        _ = vm.LoadAsync();
+        Set(vm);
+    }
+
     private void Set(ObservableObject vm)
     {
         CurrentView = vm;
