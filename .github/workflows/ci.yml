@@ -1,0 +1,107 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: Build + tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      DOTNET_NOLOGO: 'true'
+      DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 'true'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Cache NuGet
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Build.props') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
+      - name: Restore
+        run: dotnet restore Dotnetstore.DocumentViewer.slnx
+
+      # Debug treats warnings as errors (Directory.Build.props), so this is also
+      # the lint gate. WarningLevel 9999 keeps every analyzer warning fatal.
+      - name: Build (Debug, warnings-as-errors)
+        run: dotnet build Dotnetstore.DocumentViewer.slnx -c Debug --no-restore
+
+      - name: UI ViewModel tests
+        run: dotnet run --project tests/Dotnetstore.DocumentViewer.UI.AvalonUi.Tests -c Debug --no-build
+
+      # The WebApi integration tests use Testcontainers to spin up Postgres per
+      # fixture. ubuntu-latest ships with Docker, so no extra setup is needed.
+      - name: WebApi integration tests
+        run: dotnet run --project tests/Dotnetstore.DocumentViewer.WebApi.Tests -c Debug --no-build
+
+  docker-image:
+    name: Docker image smoke
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Single-arch smoke for PRs / pushes. Multi-arch publish (linux/amd64
+      # + linux/arm64) is a release-time concern — drive it from a tag-triggered
+      # workflow with `--push` and credentials when you're ready.
+      - name: Build image (linux/amd64)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          load: true
+          platforms: linux/amd64
+          tags: dotnetstore/documentviewer-webapi:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Boot smoke
+        run: |
+          set -euo pipefail
+          docker run --rm -d --name dv-webapi-ci -p 18080:8080 \
+            -e Jwt__SigningKey="ci-only-jwt-signing-key-thirty-two-chars-long" \
+            -e SignedUrl__SigningKey="ci-only-signed-url-key-thirty-two-chars-long" \
+            -e ApiKey__Value="ci-key" \
+            -e Seed__Admin__Email="admin@dotnetstore.ci" \
+            -e Seed__Admin__Password="CiSeed123!" \
+            -e ConnectionStrings__documentviewer="Host=invalid;Database=x;Username=y;Password=z" \
+            dotnetstore/documentviewer-webapi:ci || true
+
+          # The DB connection will fail (intentional — no Postgres here) and the
+          # process will exit. Wait a few seconds, then assert that the container
+          # at least registered its endpoints before dying. That proves the image
+          # boots the .NET host correctly.
+          sleep 8
+          docker logs dv-webapi-ci 2>&1 | tee /tmp/dv-webapi-ci.log
+          grep -q "Registered .* endpoints" /tmp/dv-webapi-ci.log
+          docker rm -f dv-webapi-ci >/dev/null 2>&1 || true
