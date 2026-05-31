@@ -6,6 +6,9 @@
         <OutputType>Exe</OutputType>
         <RootNamespace>Dotnetstore.DocumentViewer.UI.AvalonUi.Tests</RootNamespace>
         <TargetFramework>net10.0</TargetFramework>
+        <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+        <IsPackable>false</IsPackable>
+        <NoWarn>$(NoWarn);xUnit1051</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>
@@ -17,6 +20,9 @@
     </ItemGroup>
 
     <ItemGroup>
+        <PackageReference Include="NSubstitute" Version="5.3.0" />
+        <PackageReference Include="Shouldly" Version="4.3.0" />
+        <PackageReference Include="Tmds.DBus.Protocol" Version="0.94.1" />
         <PackageReference Include="xunit.v3.mtp-v2" Version="3.2.2"/>
     </ItemGroup>
 
