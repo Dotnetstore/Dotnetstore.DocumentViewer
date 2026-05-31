@@ -1,0 +1,30 @@
+# Non-secret configuration. Secrets (signing keys, passwords) live in webapi-secrets.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: webapi-config
+  namespace: documentviewer
+data:
+  # JWT identity claims — issuer / audience are not secret.
+  Jwt__Issuer: "Dotnetstore.DocumentViewer"
+  Jwt__Audience: "Dotnetstore.DocumentViewer.Clients"
+
+  # Seeded admin (password is in the Secret).
+  Seed__Admin__Email: "admin@dotnetstore.local"
+  Seed__Admin__DisplayName: "Administrator"
+
+  # DOCX conversion via the in-cluster gotenberg Service.
+  DocumentConversion__Mode: "Gotenberg"
+  DocumentConversion__Gotenberg__BaseAddress: "http://gotenberg:3000"
+
+  # ForwardedHeaders — trust the cluster pod CIDR so X-Forwarded-For from your Ingress
+  # is honoured. Replace 10.0.0.0/8 with your actual pod CIDR if it's different
+  # (kubectl get nodes -o jsonpath='{.items[0].spec.podCIDR}').
+  ForwardedHeaders__Enabled: "true"
+  ForwardedHeaders__KnownNetworks__0: "10.0.0.0/8"
+  ForwardedHeaders__KnownNetworks__1: "172.16.0.0/12"
+  ForwardedHeaders__KnownNetworks__2: "192.168.0.0/16"
+
+  # OpenTelemetry exporter target. Set to the OTLP collector endpoint inside the
+  # cluster, or leave unset to disable. Example for an in-cluster otel-collector:
+  # OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector.observability:4317"

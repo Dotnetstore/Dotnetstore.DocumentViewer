@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: documentviewer
+  labels:
+    app.kubernetes.io/name: documentviewer
+    app.kubernetes.io/part-of: documentviewer

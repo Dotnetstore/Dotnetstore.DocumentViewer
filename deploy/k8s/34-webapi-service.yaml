@@ -1,0 +1,20 @@
+# Internal Service. Front with an Ingress (nginx-ingress, traefik, etc.) for
+# external exposure with TLS termination — that's the right place to enable HTTPS
+# instead of teaching the WebApi to terminate it itself. The Ingress should set
+# X-Forwarded-For / -Proto / -Host headers, which the ForwardedHeaders middleware
+# honours via the ConfigMap's KnownNetworks setting.
+apiVersion: v1
+kind: Service
+metadata:
+  name: webapi
+  namespace: documentviewer
+  labels:
+    app.kubernetes.io/name: webapi
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: webapi
+  ports:
+    - port: 80
+      targetPort: http
+      name: http

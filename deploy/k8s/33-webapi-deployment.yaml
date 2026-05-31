@@ -1,0 +1,110 @@
+# WebApi Deployment.
+# - Update `image:` to point at the registry tag you push (`<registry>/dotnetstore/documentviewer-webapi:<sha>`).
+# - Recreate strategy because the /data PVC is RWO; a rolling update would block on
+#   the new pod waiting for the volume held by the old one.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webapi
+  namespace: documentviewer
+  labels:
+    app.kubernetes.io/name: webapi
+    app.kubernetes.io/component: api
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: webapi
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: webapi
+    spec:
+      securityContext:
+        # The Dockerfile uses the image's pre-baked 'app' user, UID 1654 in the
+        # official mcr.microsoft.com/dotnet/aspnet image. Pin it here so
+        # runAsNonRoot:true has a numeric UID to enforce, and the PVC's fsGroup
+        # is owned by the right group.
+        runAsNonRoot: true
+        runAsUser: 1654
+        runAsGroup: 1654
+        fsGroup: 1654
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: webapi
+          image: ghcr.io/dotnetstore/documentviewer-webapi:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+              name: http
+          envFrom:
+            - configMapRef:
+                name: webapi-config
+          env:
+            # Connection string is assembled from the secret-held POSTGRES_PASSWORD
+            # so the password isn't materialised in the ConfigMap.
+            - name: ConnectionStrings__documentviewer
+              value: "Host=postgres;Port=5432;Database=documentviewer;Username=documentviewer;Password=$(POSTGRES_PASSWORD)"
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: webapi-secrets
+                  key: POSTGRES_PASSWORD
+            - name: Jwt__SigningKey
+              valueFrom:
+                secretKeyRef:
+                  name: webapi-secrets
+                  key: Jwt__SigningKey
+            - name: SignedUrl__SigningKey
+              valueFrom:
+                secretKeyRef:
+                  name: webapi-secrets
+                  key: SignedUrl__SigningKey
+            - name: ApiKey__Value
+              valueFrom:
+                secretKeyRef:
+                  name: webapi-secrets
+                  key: ApiKey__Value
+            - name: Seed__Admin__Password
+              valueFrom:
+                secretKeyRef:
+                  name: webapi-secrets
+                  key: Seed__Admin__Password
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /alive
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            failureThreshold: 5
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          securityContext:
+            allowPrivilegeEscalation: false
+            # readOnlyRootFilesystem is left at the default (false). To enable it you'd
+            # need to mount emptyDir volumes at /tmp and /home/app/.aspnet/DataProtection-Keys
+            # so PDFium temp files and the data-protection keyring can be written.
+            capabilities:
+              drop: ["ALL"]
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: webapi-data

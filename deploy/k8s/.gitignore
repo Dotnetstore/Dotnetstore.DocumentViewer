@@ -1,0 +1,5 @@
+# Real secret manifests live here but must never be committed.
+# Use the *.example.yaml template, copy to <name>.yaml, fill in real values,
+# `kubectl apply -f` from your local copy.
+webapi-secret.yaml
+*-secret.yaml

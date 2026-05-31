@@ -1,0 +1,50 @@
+# DOCX -> PDF converter. Stateless — replicas can scale freely.
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gotenberg
+  namespace: documentviewer
+spec:
+  selector:
+    app.kubernetes.io/name: gotenberg
+  ports:
+    - port: 3000
+      targetPort: 3000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gotenberg
+  namespace: documentviewer
+  labels:
+    app.kubernetes.io/name: gotenberg
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: gotenberg
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: gotenberg
+    spec:
+      containers:
+        - name: gotenberg
+          image: gotenberg/gotenberg:8
+          args: ["gotenberg", "--api-port=3000"]
+          ports:
+            - containerPort: 3000
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"

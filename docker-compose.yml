@@ -1,0 +1,79 @@
+# Production-like stack: WebApi + Postgres + Gotenberg, all containerised.
+# Dev still uses Aspire (`dotnet run --project src/Dotnetstore.DocumentViewer.Shared.AppHost`).
+#
+# Usage:
+#   1. cp .env.example .env  &&  edit the secrets in .env
+#   2. docker compose up -d --build
+#   3. curl -i http://localhost:8080/alive
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: documentviewer
+      POSTGRES_USER: documentviewer
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U documentviewer -d documentviewer"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    restart: unless-stopped
+    # Default API port is 3000; pinned so the WebApi config can match.
+    command:
+      - "gotenberg"
+      - "--api-port=3000"
+
+  webapi:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: dotnetstore/documentviewer-webapi:local
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      gotenberg:
+        condition: service_started
+    environment:
+      # Connection string. The DbContext is registered under the "documentviewer"
+      # connection name in Program.cs.
+      ConnectionStrings__documentviewer: "Host=postgres;Port=5432;Database=documentviewer;Username=documentviewer;Password=${POSTGRES_PASSWORD}"
+
+      # JWT
+      Jwt__Issuer: "Dotnetstore.DocumentViewer"
+      Jwt__Audience: "Dotnetstore.DocumentViewer.Clients"
+      Jwt__SigningKey: ${JWT_SIGNING_KEY:?set JWT_SIGNING_KEY in .env}
+
+      # API key (X-Api-Key header on every authenticated endpoint)
+      ApiKey__Value: ${API_KEY:?set API_KEY in .env}
+
+      # Signed-URL HMAC key
+      SignedUrl__SigningKey: ${SIGNED_URL_SIGNING_KEY:?set SIGNED_URL_SIGNING_KEY in .env}
+
+      # Seeded admin — gets MustChangePassword=true on first boot
+      Seed__Admin__Email: ${SEED_ADMIN_EMAIL:-admin@dotnetstore.local}
+      Seed__Admin__Password: ${SEED_ADMIN_PASSWORD:?set SEED_ADMIN_PASSWORD in .env}
+
+      # DOCX -> PDF conversion via the gotenberg sidecar
+      DocumentConversion__Mode: "Gotenberg"
+      DocumentConversion__Gotenberg__BaseAddress: "http://gotenberg:3000"
+
+      # Trust the docker bridge network as a proxy so X-Forwarded-For works behind
+      # a reverse-proxy in front of compose.
+      ForwardedHeaders__Enabled: "true"
+      ForwardedHeaders__KnownNetworks__0: "172.16.0.0/12"
+    ports:
+      - "8080:8080"
+    volumes:
+      - webapi-data:/data
+
+volumes:
+  postgres-data:
+  webapi-data:

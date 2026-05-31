@@ -278,6 +278,19 @@ if (app.Environment.IsDevelopment())
 
 app.MapDefaultEndpoints();
 
+// ServiceDefaults only maps /health and /alive in Development. Container orchestrators
+// (docker-compose HEALTHCHECK, K8s liveness/readiness) need them in Production too —
+// both are already allow-listed by ApiKeyMiddleware (anonymous + no API key required)
+// and the /alive probe reveals nothing user-actionable.
+if (!app.Environment.IsDevelopment())
+{
+    app.MapHealthChecks("/health");
+    app.MapHealthChecks("/alive", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+    {
+        Predicate = r => r.Tags.Contains("live"),
+    });
+}
+
 app.Run();
 
 public partial class Program;

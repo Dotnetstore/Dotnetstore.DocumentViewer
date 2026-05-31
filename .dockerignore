@@ -1,0 +1,40 @@
+# Build artifacts
+**/bin/
+**/obj/
+**/out/
+**/publish/
+**/TestResults/
+**/coverage/
+**/.vs/
+**/.vscode/
+**/.idea/
+
+# Local-only state — never want this in the image
+**/App_Data/
+**/appsettings.*.json.user
+**/*.user
+**/*.suo
+*.DotSettings.user
+
+# Avalonia UI + tests aren't built by the API Dockerfile, drop them entirely
+src/Dotnetstore.DocumentViewer.UI.AvalonUi/
+src/Dotnetstore.DocumentViewer.Shared.AppHost/
+tests/
+
+# Docker / git
+.git/
+.gitignore
+.gitattributes
+**/Dockerfile
+.dockerignore
+docker-compose*.yml
+.env
+.env.*
+!.env.example
+
+# Docs / IDE
+*.md
+LICENSE
+.editorconfig
+PLAN.md
+deploy/

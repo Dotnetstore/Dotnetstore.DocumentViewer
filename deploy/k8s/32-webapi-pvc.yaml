@@ -1,0 +1,13 @@
+# Document originals + rasterised page cache. The WebApi writes to /data/{storage,cache}
+# (Dockerfile defaults; Deployment mounts this PVC at /data). RWO is fine because the
+# WebApi Deployment uses Recreate strategy — see 33-webapi-deployment.yaml.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: webapi-data
+  namespace: documentviewer
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 20Gi
