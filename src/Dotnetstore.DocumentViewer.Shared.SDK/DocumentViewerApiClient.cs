@@ -61,6 +61,12 @@ internal sealed class DocumentViewerApiClient(HttpClient http) : IDocumentViewer
         return await response.Content.ReadAsByteArrayAsync(ct);
     }
 
+    public async Task DeleteDocumentAsync(Guid id, CancellationToken ct = default)
+    {
+        using var response = await http.DeleteAsync($"/documents/{id}", ct);
+        response.EnsureSuccessStatusCode();
+    }
+
     public async Task<IReadOnlyList<UserDto>> ListUsersAsync(CancellationToken ct = default) =>
         await GetJson<List<UserDto>>("/users", ct);
 

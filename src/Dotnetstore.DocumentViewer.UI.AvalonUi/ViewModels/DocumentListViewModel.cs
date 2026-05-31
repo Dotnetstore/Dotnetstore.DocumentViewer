@@ -9,6 +9,7 @@ namespace Dotnetstore.DocumentViewer.UI.AvalonUi.ViewModels;
 
 public sealed partial class DocumentListViewModel(
     IDocumentViewerApiClient api,
+    IApiSession session,
     INavigationService nav) : ViewModelBase
 {
     public ObservableCollection<DocumentDto> Documents { get; } = [];
@@ -21,6 +22,8 @@ public sealed partial class DocumentListViewModel(
 
     [ObservableProperty]
     private string? _errorMessage;
+
+    public bool IsAdmin => session.IsAdmin;
 
     public async Task LoadAsync(CancellationToken ct = default)
     {
@@ -48,6 +51,28 @@ public sealed partial class DocumentListViewModel(
     {
         if (document is null) return;
         nav.NavigateToDocument(document.Id);
+    }
+
+    [RelayCommand]
+    private async Task Delete(DocumentDto? document)
+    {
+        if (document is null) return;
+        IsBusy = true;
+        ErrorMessage = null;
+        try
+        {
+            await api.DeleteDocumentAsync(document.Id);
+            Documents.Remove(document);
+            if (SelectedDocument?.Id == document.Id) SelectedDocument = null;
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = ex.Message;
+        }
+        finally
+        {
+            IsBusy = false;
+        }
     }
 
     [RelayCommand]

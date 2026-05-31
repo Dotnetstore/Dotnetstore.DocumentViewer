@@ -21,6 +21,7 @@ public interface IDocumentViewerApiClient
     Task<DocumentDto> UploadDocumentAsync(string title, string fileName, Stream content, string contentType, CancellationToken ct = default);
     Task<ViewerSessionDto> GetViewerSessionAsync(Guid id, CancellationToken ct = default);
     Task<byte[]> DownloadPageAsync(string relativeUrl, CancellationToken ct = default);
+    Task DeleteDocumentAsync(Guid id, CancellationToken ct = default);
 
     // Users
     Task<IReadOnlyList<UserDto>> ListUsersAsync(CancellationToken ct = default);
