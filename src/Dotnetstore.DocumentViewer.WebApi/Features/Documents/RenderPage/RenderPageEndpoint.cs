@@ -16,6 +16,7 @@ internal sealed class RenderPageEndpoint(
     IPdfPageRenderer renderer,
     IPageImageCache cache,
     IDocumentAccessPolicy accessPolicy,
+    IDocumentIpPolicy ipPolicy,
     IAuditLogger audit,
     ISignedUrlService signer,
     TimeProvider clock) : EndpointWithoutRequest
@@ -68,6 +69,15 @@ internal sealed class RenderPageEndpoint(
         if (!await accessPolicy.CanViewAsync(userId, User.IsInRole(RoleNames.Admin), documentId, ct))
         {
             await FailAndAudit(AuditActions.RenderPageForbidden, StatusCodes.Status403Forbidden,
+                userId, documentId, page, ip, ct);
+            await Send.ForbiddenAsync(ct);
+            return;
+        }
+
+        if (!await ipPolicy.IsAllowedAsync(documentId, User.IsInRole(RoleNames.Admin),
+                HttpContext.Connection.RemoteIpAddress, ct))
+        {
+            await FailAndAudit(AuditActions.RenderPageIpBlocked, StatusCodes.Status403Forbidden,
                 userId, documentId, page, ip, ct);
             await Send.ForbiddenAsync(ct);
             return;

@@ -11,6 +11,7 @@ public static class AuditActions
     public const string RenderPageNotFound = "RenderPage.NotFound";
     public const string RenderPageForbidden = "RenderPage.Forbidden";
     public const string RenderPageOutOfRange = "RenderPage.OutOfRange";
+    public const string RenderPageIpBlocked = "RenderPage.IpBlocked";
 
     public const string DocumentUploaded = "DocumentUploaded";
     public const string DocumentDeleted = "DocumentDeleted";

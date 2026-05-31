@@ -14,6 +14,7 @@ internal sealed class GetViewerSessionEndpoint(
     IDocumentStorage storage,
     IPdfPageRenderer renderer,
     IDocumentAccessPolicy accessPolicy,
+    IDocumentIpPolicy ipPolicy,
     ISignedUrlService signer) : EndpointWithoutRequest<ViewerSessionDto>
 {
     public override void Configure()
@@ -40,6 +41,14 @@ internal sealed class GetViewerSessionEndpoint(
         }
 
         if (!await accessPolicy.CanViewAsync(userId, User.IsInRole(RoleNames.Admin), documentId, ct))
+        {
+            await Send.ForbiddenAsync(ct);
+            return;
+        }
+
+        // Deny early so we don't mint signed URLs that would just 403 on every page render.
+        if (!await ipPolicy.IsAllowedAsync(documentId, User.IsInRole(RoleNames.Admin),
+                HttpContext.Connection.RemoteIpAddress, ct))
         {
             await Send.ForbiddenAsync(ct);
             return;

@@ -9,6 +9,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 {
     public DbSet<Document> Documents => Set<Document>();
     public DbSet<DocumentAccess> DocumentAccesses => Set<DocumentAccess>();
+    public DbSet<DocumentAllowedIp> DocumentAllowedIps => Set<DocumentAllowedIp>();
     public DbSet<AccessAuditLog> AccessAuditLogs => Set<AccessAuditLog>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<RevokedAccessToken> RevokedAccessTokens => Set<RevokedAccessToken>();
@@ -39,6 +40,16 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
             b.HasKey(a => a.Id);
             b.HasIndex(a => new { a.DocumentId, a.UserId }).IsUnique();
             b.HasIndex(a => a.UserId);
+        });
+
+        builder.Entity<DocumentAllowedIp>(b =>
+        {
+            b.HasKey(a => a.Id);
+            b.Property(a => a.Cidr).HasMaxLength(64).IsRequired();
+            b.Property(a => a.Description).HasMaxLength(200);
+            // Idempotent inserts: POST of a duplicate CIDR returns the existing row.
+            b.HasIndex(a => new { a.DocumentId, a.Cidr }).IsUnique();
+            b.HasIndex(a => a.DocumentId);
         });
 
         builder.Entity<AccessAuditLog>(b =>

@@ -1,5 +1,6 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using Dotnetstore.DocumentViewer.Shared.SDK.Dtos.Access;
 using Dotnetstore.DocumentViewer.Shared.SDK.Dtos.Auth;
 using Dotnetstore.DocumentViewer.Shared.SDK.Dtos.Documents;
 using Dotnetstore.DocumentViewer.Shared.SDK.Dtos.Users;
@@ -167,6 +168,29 @@ public class DocumentViewerApiFactory : WebApplicationFactory<Program>, IAsyncLi
         var response = await client.PostAsync("/documents", form);
         response.EnsureSuccessStatusCode();
         return (await response.Content.ReadFromJsonAsync<DocumentDto>())!;
+    }
+
+    /// <summary>Posts an IP / CIDR to the document's allow-list via an authenticated admin
+    /// client and returns the created entry. Mirrors <see cref="UploadPdfAsync"/>.</summary>
+    public static async Task<AllowedIpDto> AddAllowedIpAsync(HttpClient adminClient, Guid documentId, string cidr, string? description = null)
+    {
+        using var response = await adminClient.PostAsJsonAsync(
+            $"/documents/{documentId}/allowed-ips",
+            new AddAllowedIpRequest(cidr, description));
+        response.EnsureSuccessStatusCode();
+        return (await response.Content.ReadFromJsonAsync<AllowedIpDto>())!;
+    }
+
+    /// <summary>Directly sets <c>Document.PageCount</c> in the DB so endpoints that lazily
+    /// derive it via <see cref="Infrastructure.Rendering.IPdfPageRenderer.GetPageCount"/>
+    /// don't have to actually rasterise — fake-PDF test payloads would otherwise throw.</summary>
+    public async Task SetPageCountAsync(Guid documentId, int pageCount)
+    {
+        await using var scope = Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await db.Documents
+            .Where(d => d.Id == documentId)
+            .ExecuteUpdateAsync(s => s.SetProperty(d => d.PageCount, pageCount));
     }
 
     /// <summary>Bytes that start with the <c>%PDF-</c> magic so the upload endpoint's

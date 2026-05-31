@@ -77,4 +77,18 @@ public sealed partial class DocumentListViewModel(
 
     [RelayCommand]
     private Task Refresh() => LoadAsync();
+
+    [RelayCommand]
+    private void ViewAuditLog(DocumentDto? document)
+    {
+        if (document is null) return;
+        nav.NavigateToDocumentAuditLog(document.Id);
+    }
+
+    [RelayCommand]
+    private void ManageIps(DocumentDto? document)
+    {
+        if (document is null) return;
+        nav.NavigateToAllowedIps(document.Id);
+    }
 }

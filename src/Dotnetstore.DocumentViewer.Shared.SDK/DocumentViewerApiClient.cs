@@ -104,6 +104,18 @@ internal sealed class DocumentViewerApiClient(HttpClient http) : IDocumentViewer
     public async Task<IReadOnlyList<DocumentAccessDto>> ListAccessForDocumentAsync(Guid documentId, CancellationToken ct = default) =>
         await GetJson<List<DocumentAccessDto>>($"/documents/{documentId}/access", ct);
 
+    public async Task<IReadOnlyList<AllowedIpDto>> ListAllowedIpsAsync(Guid documentId, CancellationToken ct = default) =>
+        await GetJson<List<AllowedIpDto>>($"/documents/{documentId}/allowed-ips", ct);
+
+    public async Task<AllowedIpDto> AddAllowedIpAsync(Guid documentId, AddAllowedIpRequest request, CancellationToken ct = default) =>
+        await PostJson<AddAllowedIpRequest, AllowedIpDto>($"/documents/{documentId}/allowed-ips", request, ct);
+
+    public async Task RemoveAllowedIpAsync(Guid documentId, Guid ipId, CancellationToken ct = default)
+    {
+        using var response = await http.DeleteAsync($"/documents/{documentId}/allowed-ips/{ipId}", ct);
+        response.EnsureSuccessStatusCode();
+    }
+
     public async Task<IReadOnlyList<AuditLogEntryDto>> QueryAuditLogAsync(AuditLogQuery query, CancellationToken ct = default)
     {
         var qs = new List<string>();

@@ -37,10 +37,11 @@ internal sealed class DeleteDocumentEndpoint(
         var storagePath = document.StoragePath;
         var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
 
-        // Drop ACL rows alongside the document — there's no FK so they'd otherwise orphan.
-        // AccessAuditLog rows are kept (DocumentId nullable on the column) so the trail
-        // survives a delete; the audit row staged below captures the deletion itself.
+        // Drop ACL + allow-list rows alongside the document — there's no FK so they'd
+        // otherwise orphan. AccessAuditLog rows are kept (DocumentId nullable on the column)
+        // so the trail survives a delete; the audit row staged below captures the deletion.
         await db.DocumentAccesses.Where(a => a.DocumentId == documentId).ExecuteDeleteAsync(ct);
+        await db.DocumentAllowedIps.Where(a => a.DocumentId == documentId).ExecuteDeleteAsync(ct);
         db.Documents.Remove(document);
         audit.Add(AuditActions.DocumentDeleted,
             userId: actorId == Guid.Empty ? null : actorId,

@@ -35,6 +35,11 @@ public interface IDocumentViewerApiClient
     Task RevokeAccessAsync(Guid documentId, Guid userId, CancellationToken ct = default);
     Task<IReadOnlyList<DocumentAccessDto>> ListAccessForDocumentAsync(Guid documentId, CancellationToken ct = default);
 
+    // Allowed IPs
+    Task<IReadOnlyList<AllowedIpDto>> ListAllowedIpsAsync(Guid documentId, CancellationToken ct = default);
+    Task<AllowedIpDto> AddAllowedIpAsync(Guid documentId, AddAllowedIpRequest request, CancellationToken ct = default);
+    Task RemoveAllowedIpAsync(Guid documentId, Guid ipId, CancellationToken ct = default);
+
     // Audit log (Admin)
     Task<IReadOnlyList<AuditLogEntryDto>> QueryAuditLogAsync(AuditLogQuery query, CancellationToken ct = default);
 }

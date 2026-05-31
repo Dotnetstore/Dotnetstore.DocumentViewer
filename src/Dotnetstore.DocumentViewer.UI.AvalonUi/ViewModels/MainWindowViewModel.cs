@@ -76,5 +76,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         public void NavigateToAdminAccess() { }
         public void NavigateToChangePassword() { }
         public void NavigateToUpload() { }
+        public void NavigateToAllowedIps(Guid documentId) { }
+        public void NavigateToDocumentAuditLog(Guid documentId) { }
     }
 }

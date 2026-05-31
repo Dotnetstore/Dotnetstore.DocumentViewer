@@ -14,4 +14,6 @@ public interface INavigationService
     void NavigateToAdminAccess();
     void NavigateToChangePassword();
     void NavigateToUpload();
+    void NavigateToAllowedIps(Guid documentId);
+    void NavigateToDocumentAuditLog(Guid documentId);
 }

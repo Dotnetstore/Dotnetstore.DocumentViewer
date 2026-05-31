@@ -45,6 +45,20 @@ internal sealed class NavigationService(IServiceProvider services) : INavigation
     public void NavigateToUpload() =>
         Set(services.GetRequiredService<UploadDocumentViewModel>());
 
+    public void NavigateToAllowedIps(Guid documentId)
+    {
+        var vm = services.GetRequiredService<AllowedIpsViewModel>();
+        _ = vm.LoadAsync(documentId);
+        Set(vm);
+    }
+
+    public void NavigateToDocumentAuditLog(Guid documentId)
+    {
+        var vm = services.GetRequiredService<DocumentAuditLogViewModel>();
+        _ = vm.LoadAsync(documentId);
+        Set(vm);
+    }
+
     private void Set(ObservableObject vm)
     {
         CurrentView = vm;

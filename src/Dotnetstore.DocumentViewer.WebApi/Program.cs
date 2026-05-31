@@ -42,7 +42,13 @@ builder.EnrichNpgsqlDbContext<AppDbContext>(s => s.DisableRetry = true);
 
 // Cross-cutting persistence services (centralise rules + writes so the endpoints stay thin).
 builder.Services.AddScoped<IDocumentAccessPolicy, DocumentAccessPolicy>();
+builder.Services.AddScoped<IDocumentIpPolicy, DocumentIpPolicy>();
 builder.Services.AddScoped<IAuditLogger, AuditLogger>();
+
+// DatabaseInitializer must register BEFORE any other hosted service so the host's
+// sequential StartAsync runs migrations before workers (RevokedAccessTokenCleanupWorker,
+// CacheEvictionWorker, DocumentConversionWorker) start querying their tables.
+builder.Services.AddHostedService<DatabaseInitializer>();
 
 // Identity
 builder.Services
@@ -242,8 +248,6 @@ builder.Services.SwaggerDocument(o =>
         s.Version = "v1";
     };
 });
-
-builder.Services.AddHostedService<DatabaseInitializer>();
 
 var app = builder.Build();
 
