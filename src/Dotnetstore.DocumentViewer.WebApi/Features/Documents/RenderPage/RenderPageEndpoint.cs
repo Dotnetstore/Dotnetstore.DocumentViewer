@@ -92,7 +92,7 @@ internal sealed class RenderPageEndpoint(
         }
 
         var email = User.GetEmail();
-        var watermark = $"{email}  -  {ip ?? "?"}  -  {clock.GetUtcNow():yyyy-MM-dd HH:mm:ss} UTC";
+        var watermark = $"{email}  -  {ip ?? "?"}  -  {clock.GetUtcNow():yyyy-MM-dd HH:mm:ss} UTC  ©  Dotnetstore";
 
         // Two-step: rasterized (unwatermarked) PNG is cached on disk per (docId, page);
         // the per-request watermark is overlaid fresh so each served image carries the

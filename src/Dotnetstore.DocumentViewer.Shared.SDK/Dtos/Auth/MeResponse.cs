@@ -5,4 +5,5 @@ public sealed record MeResponse(
     string Email,
     string DisplayName,
     IReadOnlyList<string> Roles,
-    bool MustChangePassword);
+    bool MustChangePassword,
+    string? ClientIp);

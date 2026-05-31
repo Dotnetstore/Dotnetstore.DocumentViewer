@@ -8,4 +8,5 @@ public sealed record AuditLogEntryDto(
     string Action,
     int ResultCode,
     string? IpAddress,
-    DateTimeOffset AtUtc);
+    DateTimeOffset AtUtc,
+    string? UserEmail);

@@ -13,6 +13,10 @@ public static class AuditActions
     public const string RenderPageOutOfRange = "RenderPage.OutOfRange";
     public const string RenderPageIpBlocked = "RenderPage.IpBlocked";
 
+    public const string ViewerSessionNotFound = "ViewerSession.NotFound";
+    public const string ViewerSessionForbidden = "ViewerSession.Forbidden";
+    public const string ViewerSessionIpBlocked = "ViewerSession.IpBlocked";
+
     public const string DocumentUploaded = "DocumentUploaded";
     public const string DocumentDeleted = "DocumentDeleted";
 

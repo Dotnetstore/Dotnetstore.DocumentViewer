@@ -47,4 +47,17 @@ public sealed class AuditLogTests(DocumentViewerApiFactory factory)
         var response = await viewer.GetAsync("/audit-log");
         response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
     }
+
+    [Fact]
+    public async Task Audit_log_rows_include_user_email_via_left_join()
+    {
+        using var admin = await factory.CreateAdminClientAsync();
+        var doc = await DocumentViewerApiFactory.UploadPdfAsync(admin, "Audit user-email");
+        // The Upload itself wrote a DocumentUploaded audit row for the admin; the
+        // LEFT JOIN in QueryAuditLogEndpoint should resolve UserId -> email.
+        var rows = await admin.GetFromJsonAsync<List<AuditLogEntryDto>>(
+            $"/audit-log?documentId={doc.Id}&take=50");
+        rows.ShouldNotBeNull();
+        rows.ShouldContain(r => r.DocumentId == doc.Id && r.UserEmail == DocumentViewerApiFactory.AdminEmail);
+    }
 }

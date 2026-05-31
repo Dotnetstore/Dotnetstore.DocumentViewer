@@ -30,8 +30,14 @@ internal sealed class MeEndpoint(UserManager<ApplicationUser> userManager) : End
         }
 
         var roles = (await userManager.GetRolesAsync(user)).ToArray();
+        // ClientIp lets the UI show the caller what address the server actually sees
+        // (post-ForwardedHeaders), which is useful when a per-document IP allow-list
+        // is in play and a viewer needs to ask their admin what to whitelist.
         await Send.OkAsync(
-            new MeResponse(user.Id, user.Email ?? string.Empty, user.DisplayName, roles, user.MustChangePassword),
+            new MeResponse(
+                user.Id, user.Email ?? string.Empty, user.DisplayName, roles,
+                user.MustChangePassword,
+                HttpContext.Connection.RemoteIpAddress?.ToString()),
             ct);
     }
 }

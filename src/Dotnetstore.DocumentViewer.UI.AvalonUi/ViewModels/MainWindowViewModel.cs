@@ -17,6 +17,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     public bool IsAuthenticated => _session.IsAuthenticated;
     public bool IsAdmin => _session.IsAdmin;
     public string? CurrentUserEmail => _session.Me?.Email;
+    public string? CurrentClientIp => _session.Me?.ClientIp;
+    public string CopyrightLine => $"© Dotnetstore {DateTime.UtcNow.Year}";
 
     public MainWindowViewModel(INavigationService nav, IApiSession session, IDocumentViewerApiClient api)
     {
@@ -29,6 +31,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
             OnPropertyChanged(nameof(IsAuthenticated));
             OnPropertyChanged(nameof(IsAdmin));
             OnPropertyChanged(nameof(CurrentUserEmail));
+            OnPropertyChanged(nameof(CurrentClientIp));
         };
         _nav.NavigateToLogin();
     }

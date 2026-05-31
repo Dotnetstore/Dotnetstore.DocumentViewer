@@ -2,9 +2,10 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Dotnetstore.DocumentViewer.UI.AvalonUi.ViewModels"
              xmlns:dto="using:Dotnetstore.DocumentViewer.Shared.SDK.Dtos.Audit"
+             xmlns:conv="using:Dotnetstore.DocumentViewer.UI.AvalonUi.Converters"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="600"
+             mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="600"
              x:Class="Dotnetstore.DocumentViewer.UI.AvalonUi.Views.DocumentAuditLogView"
              x:DataType="vm:DocumentAuditLogViewModel">
 
@@ -37,14 +38,18 @@
                          Background="Transparent" BorderThickness="0">
                     <ListBox.ItemTemplate>
                         <DataTemplate DataType="dto:AuditLogEntryDto">
-                            <Grid ColumnDefinitions="160,140,80,*,Auto" Margin="4,4" ColumnSpacing="12">
+                            <Grid ColumnDefinitions="160,200,180,60,140,Auto" Margin="4,4" ColumnSpacing="12">
                                 <TextBlock Grid.Column="0"
                                            Text="{Binding AtUtc, StringFormat='{}{0:yyyy-MM-dd HH:mm:ss}'}"
                                            FontFamily="Consolas,monospace" Classes="Meta" VerticalAlignment="Center"/>
-                                <TextBlock Grid.Column="1" Text="{Binding Action}" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                                <TextBlock Grid.Column="2" Text="{Binding ResultCode}" Classes="Meta" VerticalAlignment="Center"/>
-                                <TextBlock Grid.Column="3" Text="{Binding IpAddress}" FontFamily="Consolas,monospace" VerticalAlignment="Center"/>
-                                <TextBlock Grid.Column="4"
+                                <TextBlock Grid.Column="1" Text="{Binding UserEmail, FallbackValue=—, TargetNullValue=—}"
+                                           FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                <TextBlock Grid.Column="2" Text="{Binding Action}" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="3" Text="{Binding ResultCode}" VerticalAlignment="Center"
+                                           Foreground="{Binding ResultCode, Converter={x:Static conv:HttpStatusColorConverter.Instance}}"
+                                           FontWeight="SemiBold"/>
+                                <TextBlock Grid.Column="4" Text="{Binding IpAddress}" FontFamily="Consolas,monospace" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="5"
                                            Text="{Binding PageNumber, StringFormat='Page {0}'}"
                                            Classes="Meta" VerticalAlignment="Center"
                                            IsVisible="{Binding PageNumber, Converter={x:Static ObjectConverters.IsNotNull}}"/>

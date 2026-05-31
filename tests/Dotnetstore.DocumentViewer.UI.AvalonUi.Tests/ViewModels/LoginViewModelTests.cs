@@ -33,7 +33,7 @@ public sealed class LoginViewModelTests
         var vm = new LoginViewModel(_api, _session, _nav);
         var tokens = new TokenResponse("acc", DateTimeOffset.UtcNow.AddMinutes(15), "ref", DateTimeOffset.UtcNow.AddDays(14));
         var me = new MeResponse(Guid.NewGuid(), "alice@dotnetstore.test", "Alice",
-            ["Viewer"], MustChangePassword: false);
+            ["Viewer"], MustChangePassword: false, ClientIp: "127.0.0.1");
         _api.LoginAsync(Arg.Any<LoginRequest>()).Returns(tokens);
         _api.MeAsync().Returns(me);
 
@@ -55,7 +55,7 @@ public sealed class LoginViewModelTests
         var vm = new LoginViewModel(_api, _session, _nav);
         var tokens = new TokenResponse("acc", DateTimeOffset.UtcNow.AddMinutes(15), "ref", DateTimeOffset.UtcNow.AddDays(14));
         var me = new MeResponse(Guid.NewGuid(), "admin@dotnetstore.test", "Admin",
-            ["Admin"], MustChangePassword: true);
+            ["Admin"], MustChangePassword: true, ClientIp: "127.0.0.1");
         _api.LoginAsync(Arg.Any<LoginRequest>()).Returns(tokens);
         _api.MeAsync().Returns(me);
 

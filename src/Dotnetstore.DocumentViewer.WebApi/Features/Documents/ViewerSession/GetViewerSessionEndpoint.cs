@@ -1,4 +1,5 @@
 using Dotnetstore.DocumentViewer.Shared.SDK.Dtos.Documents;
+using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Auditing;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Identity;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Persistence;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Rendering;
@@ -15,6 +16,7 @@ internal sealed class GetViewerSessionEndpoint(
     IPdfPageRenderer renderer,
     IDocumentAccessPolicy accessPolicy,
     IDocumentIpPolicy ipPolicy,
+    IAuditLogger audit,
     ISignedUrlService signer) : EndpointWithoutRequest<ViewerSessionDto>
 {
     public override void Configure()
@@ -29,19 +31,28 @@ internal sealed class GetViewerSessionEndpoint(
 
         if (!User.TryGetUserId(out var userId))
         {
+            // JwtBearer should have rejected this already; no audit because we don't know who.
             await Send.UnauthorizedAsync(ct);
             return;
         }
 
+        var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+
         var document = await db.Documents.SingleOrDefaultAsync(d => d.Id == documentId, ct);
         if (document is null)
         {
+            await audit.LogAsync(AuditActions.ViewerSessionNotFound,
+                userId: userId, documentId: documentId,
+                resultCode: StatusCodes.Status404NotFound, ipAddress: ip, ct: ct);
             await Send.NotFoundAsync(ct);
             return;
         }
 
         if (!await accessPolicy.CanViewAsync(userId, User.IsInRole(RoleNames.Admin), documentId, ct))
         {
+            await audit.LogAsync(AuditActions.ViewerSessionForbidden,
+                userId: userId, documentId: documentId,
+                resultCode: StatusCodes.Status403Forbidden, ipAddress: ip, ct: ct);
             await Send.ForbiddenAsync(ct);
             return;
         }
@@ -50,6 +61,9 @@ internal sealed class GetViewerSessionEndpoint(
         if (!await ipPolicy.IsAllowedAsync(documentId, User.IsInRole(RoleNames.Admin),
                 HttpContext.Connection.RemoteIpAddress, ct))
         {
+            await audit.LogAsync(AuditActions.ViewerSessionIpBlocked,
+                userId: userId, documentId: documentId,
+                resultCode: StatusCodes.Status403Forbidden, ipAddress: ip, ct: ct);
             await Send.ForbiddenAsync(ct);
             return;
         }

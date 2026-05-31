@@ -74,12 +74,19 @@ public sealed class AuthFlowTests(DocumentViewerApiFactory factory)
         // below in Me_for_flagged_viewer_reports_must_change_password.
         using var client = await factory.CreateAdminClientAsync();
 
-        var me = await client.GetFromJsonAsync<MeResponse>("/auth/me");
+        // TestServer doesn't populate Connection.RemoteIpAddress for in-process
+        // requests, so send X-Forwarded-For and let the ForwardedHeaders middleware
+        // (loopback is trusted) substitute the value the way a real proxy would.
+        using var req = new HttpRequestMessage(HttpMethod.Get, "/auth/me");
+        req.Headers.Add("X-Forwarded-For", "203.0.113.7");
+        var response = await client.SendAsync(req);
+        var me = await response.Content.ReadFromJsonAsync<MeResponse>();
 
         me.ShouldNotBeNull();
         me.Email.ShouldBe(DocumentViewerApiFactory.AdminEmail);
         me.Roles.ShouldContain("Admin");
         me.MustChangePassword.ShouldBeFalse();
+        me.ClientIp.ShouldBe("203.0.113.7");
     }
 
     [Fact]

@@ -55,7 +55,7 @@ public sealed class DocumentAuditLogViewModelTests
         _nav.Received(1).NavigateToDocumentList();
     }
 
-    private static AuditLogEntryDto NewRow(string action) => new(
+    private static AuditLogEntryDto NewRow(string action, string? userEmail = "user@x.test") => new(
         Guid.NewGuid(),
         UserId: Guid.NewGuid(),
         DocumentId: Guid.NewGuid(),
@@ -63,5 +63,6 @@ public sealed class DocumentAuditLogViewModelTests
         Action: action,
         ResultCode: 200,
         IpAddress: "127.0.0.1",
-        AtUtc: DateTimeOffset.UtcNow);
+        AtUtc: DateTimeOffset.UtcNow,
+        UserEmail: userEmail);
 }

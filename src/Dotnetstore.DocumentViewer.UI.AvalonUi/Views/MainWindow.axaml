@@ -14,7 +14,7 @@
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
-    <Grid RowDefinitions="Auto,*">
+    <Grid RowDefinitions="Auto,*,Auto">
         <Border Grid.Row="0" BorderBrush="#22000000" BorderThickness="0,0,0,1"
                 IsVisible="{Binding IsAuthenticated}">
             <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto,Auto" Margin="12,6">
@@ -25,14 +25,22 @@
                         IsVisible="{Binding IsAdmin}" Margin="0,0,4,0"/>
                 <Button Grid.Column="3" Content="Access" Command="{Binding GoToAdminAccessCommand}"
                         IsVisible="{Binding IsAdmin}"/>
-                <TextBlock Grid.Column="5" Text="{Binding CurrentUserEmail}" Opacity="0.7"
-                           VerticalAlignment="Center" Margin="0,0,12,0"/>
+                <TextBlock Grid.Column="5" VerticalAlignment="Center" Margin="0,0,12,0">
+                    <Run Text="{Binding CurrentUserEmail}"/>
+                    <Run Text="  ·  IP: " Foreground="#888"/>
+                    <Run Text="{Binding CurrentClientIp, FallbackValue=unknown, TargetNullValue=unknown}" Foreground="#888"/>
+                </TextBlock>
                 <Button Grid.Column="6" Content="Change password" Command="{Binding GoToChangePasswordCommand}" Margin="0,0,4,0"/>
                 <Button Grid.Column="7" Content="Sign out" Command="{Binding SignOutCommand}"/>
             </Grid>
         </Border>
 
         <ContentControl Grid.Row="1" Content="{Binding CurrentView}"/>
+
+        <Border Grid.Row="2" BorderBrush="#22000000" BorderThickness="0,1,0,0" Padding="12,4">
+            <TextBlock Text="{Binding CopyrightLine}" Opacity="0.6" FontSize="11"
+                       HorizontalAlignment="Center"/>
+        </Border>
     </Grid>
 
 </Window>

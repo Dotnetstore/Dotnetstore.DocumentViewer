@@ -26,7 +26,7 @@ public sealed class MainWindowViewModelTests
         _session.IsAuthenticated.Returns(true);
         _session.IsAdmin.Returns(true);
         _session.Me.Returns(new MeResponse(Guid.NewGuid(), "admin@x.test", "Admin",
-            ["Admin"], MustChangePassword: false));
+            ["Admin"], MustChangePassword: false, ClientIp: "10.0.0.42"));
         var vm = new MainWindowViewModel(_nav, _session, _api);
 
         var changes = new List<string>();
@@ -37,9 +37,12 @@ public sealed class MainWindowViewModelTests
         changes.ShouldContain(nameof(MainWindowViewModel.IsAuthenticated));
         changes.ShouldContain(nameof(MainWindowViewModel.IsAdmin));
         changes.ShouldContain(nameof(MainWindowViewModel.CurrentUserEmail));
+        changes.ShouldContain(nameof(MainWindowViewModel.CurrentClientIp));
         vm.IsAuthenticated.ShouldBeTrue();
         vm.IsAdmin.ShouldBeTrue();
         vm.CurrentUserEmail.ShouldBe("admin@x.test");
+        vm.CurrentClientIp.ShouldBe("10.0.0.42");
+        vm.CopyrightLine.ShouldContain("Dotnetstore");
     }
 
     [Fact]
