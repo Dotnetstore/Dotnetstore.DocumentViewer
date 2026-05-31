@@ -89,8 +89,22 @@ builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationSc
             NameClaimType = JwtRegisteredClaimNames.Sub,
             RoleClaimType = "role",
         };
+        bearer.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = async ctx =>
+            {
+                var jti = ctx.Principal?.FindFirst(JwtRegisteredClaimNames.Jti)?.Value;
+                if (string.IsNullOrEmpty(jti)) return;
+                var store = ctx.HttpContext.RequestServices.GetRequiredService<IAccessTokenRevocationStore>();
+                if (await store.IsRevokedAsync(jti, ctx.HttpContext.RequestAborted))
+                    ctx.Fail("Access token has been revoked.");
+            }
+        };
     });
 builder.Services.AddAuthorization();
+builder.Services.AddMemoryCache();
+builder.Services.AddScoped<IAccessTokenRevocationStore, AccessTokenRevocationStore>();
+builder.Services.AddHostedService<RevokedAccessTokenCleanupWorker>();
 
 // Forwarded headers — translates X-Forwarded-For / -Proto / -Host onto the request
 // when the connecting peer is a trusted reverse proxy. In Aspire local dev the WebApi

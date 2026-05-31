@@ -11,6 +11,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<DocumentAccess> DocumentAccesses => Set<DocumentAccess>();
     public DbSet<AccessAuditLog> AccessAuditLogs => Set<AccessAuditLog>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<RevokedAccessToken> RevokedAccessTokens => Set<RevokedAccessToken>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -55,6 +56,14 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
             b.HasKey(t => t.Id);
             b.Property(t => t.TokenHash).HasMaxLength(200).IsRequired();
             b.HasIndex(t => t.TokenHash).IsUnique();
+            b.HasIndex(t => t.UserId);
+        });
+
+        builder.Entity<RevokedAccessToken>(b =>
+        {
+            b.HasKey(t => t.Jti);
+            b.Property(t => t.Jti).HasMaxLength(64);
+            b.HasIndex(t => t.ExpiresAt);
             b.HasIndex(t => t.UserId);
         });
     }
