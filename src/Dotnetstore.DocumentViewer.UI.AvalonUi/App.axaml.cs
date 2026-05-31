@@ -40,6 +40,7 @@ public partial class App : Application
             services.AddTransient<AdminUsersViewModel>();
             services.AddTransient<AdminAccessViewModel>();
             services.AddTransient<ChangePasswordViewModel>();
+            services.AddTransient<UploadDocumentViewModel>();
 
             Services = services.BuildServiceProvider();
 

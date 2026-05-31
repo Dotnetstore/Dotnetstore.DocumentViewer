@@ -13,4 +13,5 @@ public interface INavigationService
     void NavigateToAdminUsers();
     void NavigateToAdminAccess();
     void NavigateToChangePassword();
+    void NavigateToUpload();
 }
