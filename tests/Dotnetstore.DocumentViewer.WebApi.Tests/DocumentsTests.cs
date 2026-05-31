@@ -15,7 +15,7 @@ public sealed class DocumentsTests(DocumentViewerApiFactory factory)
     {
         using var admin = await factory.CreateAdminClientAsync();
 
-        var dto = await UploadAsync(admin, "Sample upload");
+        var dto = await DocumentViewerApiFactory.UploadPdfAsync(admin, "Sample upload");
 
         dto.Title.ShouldBe("Sample upload");
         dto.ContentType.ShouldBe("application/pdf");
@@ -29,7 +29,12 @@ public sealed class DocumentsTests(DocumentViewerApiFactory factory)
         await factory.CreateViewerAsync(email);
         using var viewer = await factory.CreateViewerClientAsync(email);
 
-        using var form = BuildForm("Should fail");
+        using var form = new MultipartFormDataContent();
+        var pdf = new ByteArrayContent(DocumentViewerApiFactory.FakePdfBytes("Should fail"));
+        pdf.Headers.ContentType = new MediaTypeHeaderValue("application/pdf");
+        form.Add(pdf, "file", "Should_fail.pdf");
+        form.Add(new StringContent("Should fail"), "Title");
+
         var response = await viewer.PostAsync("/documents", form);
         response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
     }
@@ -52,8 +57,8 @@ public sealed class DocumentsTests(DocumentViewerApiFactory factory)
     public async Task Admin_sees_all_documents_viewer_only_granted()
     {
         using var admin = await factory.CreateAdminClientAsync();
-        var ungranted = await UploadAsync(admin, "Ungranted to viewer");
-        var granted = await UploadAsync(admin, "Granted to viewer");
+        var ungranted = await DocumentViewerApiFactory.UploadPdfAsync(admin, "Ungranted to viewer");
+        var granted = await DocumentViewerApiFactory.UploadPdfAsync(admin, "Granted to viewer");
 
         var email = $"list-viewer-{Guid.NewGuid():N}@dotnetstore.test";
         var viewer = await factory.CreateViewerAsync(email);
@@ -77,7 +82,7 @@ public sealed class DocumentsTests(DocumentViewerApiFactory factory)
     public async Task GetMetadata_returns_404_when_unknown_and_403_when_ungranted()
     {
         using var admin = await factory.CreateAdminClientAsync();
-        var doc = await UploadAsync(admin, "Metadata-test");
+        var doc = await DocumentViewerApiFactory.UploadPdfAsync(admin, "Metadata-test");
 
         var email = $"meta-viewer-{Guid.NewGuid():N}@dotnetstore.test";
         await factory.CreateViewerAsync(email);
@@ -88,23 +93,5 @@ public sealed class DocumentsTests(DocumentViewerApiFactory factory)
 
         var forbidden = await viewer.GetAsync($"/documents/{doc.Id}");
         forbidden.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
-    }
-
-    private static async Task<DocumentDto> UploadAsync(HttpClient client, string title)
-    {
-        using var form = BuildForm(title);
-        var response = await client.PostAsync("/documents", form);
-        response.EnsureSuccessStatusCode();
-        return (await response.Content.ReadFromJsonAsync<DocumentDto>())!;
-    }
-
-    private static MultipartFormDataContent BuildForm(string title)
-    {
-        var form = new MultipartFormDataContent();
-        var pdf = new ByteArrayContent(DocumentViewerApiFactory.FakePdfBytes(title));
-        pdf.Headers.ContentType = new MediaTypeHeaderValue("application/pdf");
-        form.Add(pdf, "file", $"{title.Replace(' ', '_')}.pdf");
-        form.Add(new StringContent(title), "Title");
-        return form;
     }
 }

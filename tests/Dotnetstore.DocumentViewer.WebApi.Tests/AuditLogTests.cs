@@ -1,8 +1,6 @@
 using System.Net;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Dotnetstore.DocumentViewer.Shared.SDK.Dtos.Audit;
-using Dotnetstore.DocumentViewer.Shared.SDK.Dtos.Documents;
 using Shouldly;
 
 namespace Dotnetstore.DocumentViewer.WebApi.Tests;
@@ -16,7 +14,7 @@ public sealed class AuditLogTests(DocumentViewerApiFactory factory)
         using var admin = await factory.CreateAdminClientAsync();
 
         // Upload a doc and try a render with no signature so we have a known audit row to look for.
-        var doc = await UploadAsync(admin, "Audit subject");
+        var doc = await DocumentViewerApiFactory.UploadPdfAsync(admin, "Audit subject");
         var unsigned = await admin.GetAsync($"/documents/{doc.Id}/pages/0");
         unsigned.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
 
@@ -30,7 +28,7 @@ public sealed class AuditLogTests(DocumentViewerApiFactory factory)
     public async Task Audit_log_filters_by_action_prefix()
     {
         using var admin = await factory.CreateAdminClientAsync();
-        var doc = await UploadAsync(admin, "Audit filter");
+        var doc = await DocumentViewerApiFactory.UploadPdfAsync(admin, "Audit filter");
         _ = await admin.GetAsync($"/documents/{doc.Id}/pages/0");
 
         var rows = await admin.GetFromJsonAsync<List<AuditLogEntryDto>>(
@@ -48,17 +46,5 @@ public sealed class AuditLogTests(DocumentViewerApiFactory factory)
 
         var response = await viewer.GetAsync("/audit-log");
         response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
-    }
-
-    private static async Task<DocumentDto> UploadAsync(HttpClient client, string title)
-    {
-        using var form = new MultipartFormDataContent();
-        var pdf = new ByteArrayContent(DocumentViewerApiFactory.FakePdfBytes(title));
-        pdf.Headers.ContentType = new MediaTypeHeaderValue("application/pdf");
-        form.Add(pdf, "file", $"{title.Replace(' ', '_')}.pdf");
-        form.Add(new StringContent(title), "Title");
-        var response = await client.PostAsync("/documents", form);
-        response.EnsureSuccessStatusCode();
-        return (await response.Content.ReadFromJsonAsync<DocumentDto>())!;
     }
 }

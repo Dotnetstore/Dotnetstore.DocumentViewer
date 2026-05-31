@@ -1,5 +1,3 @@
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 using Dotnetstore.DocumentViewer.Shared.SDK.Dtos.Documents;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Identity;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Persistence;
@@ -53,8 +51,7 @@ internal sealed class UploadDocumentEndpoint(
             return;
         }
 
-        var sub = User.FindFirstValue(JwtRegisteredClaimNames.Sub) ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (!Guid.TryParse(sub, out var uploaderId))
+        if (!User.TryGetUserId(out var uploaderId))
         {
             await Send.UnauthorizedAsync(ct);
             return;

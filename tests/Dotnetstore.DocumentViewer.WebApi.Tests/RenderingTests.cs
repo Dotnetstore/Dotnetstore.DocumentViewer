@@ -1,8 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Net;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using Dotnetstore.DocumentViewer.Shared.SDK.Dtos.Documents;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Security;
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
@@ -21,7 +19,7 @@ public sealed class RenderingTests(DocumentViewerApiFactory factory)
     public async Task RenderPage_without_signature_returns_401()
     {
         using var admin = await factory.CreateAdminClientAsync();
-        var doc = await UploadAsync(admin, "RenderPage no sig");
+        var doc = await DocumentViewerApiFactory.UploadPdfAsync(admin, "RenderPage no sig");
 
         var response = await admin.GetAsync($"/documents/{doc.Id}/pages/0");
         response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
@@ -31,7 +29,7 @@ public sealed class RenderingTests(DocumentViewerApiFactory factory)
     public async Task RenderPage_with_tampered_signature_returns_401()
     {
         using var admin = await factory.CreateAdminClientAsync();
-        var doc = await UploadAsync(admin, "RenderPage tampered");
+        var doc = await DocumentViewerApiFactory.UploadPdfAsync(admin, "RenderPage tampered");
         var token = await factory.LoginAsync(DocumentViewerApiFactory.AdminEmail, DocumentViewerApiFactory.AdminPassword);
         var adminId = SubFromJwt(token);
 
@@ -50,7 +48,7 @@ public sealed class RenderingTests(DocumentViewerApiFactory factory)
     public async Task RenderPage_signed_for_one_user_rejected_when_called_by_another()
     {
         using var admin = await factory.CreateAdminClientAsync();
-        var doc = await UploadAsync(admin, "RenderPage cross-user");
+        var doc = await DocumentViewerApiFactory.UploadPdfAsync(admin, "RenderPage cross-user");
 
         // Grant access to a viewer so the ACL gate would pass for them.
         var email = $"render-x-{Guid.NewGuid():N}@dotnetstore.test";
@@ -73,7 +71,7 @@ public sealed class RenderingTests(DocumentViewerApiFactory factory)
     public async Task ViewerSession_returns_403_for_ungranted_user()
     {
         using var admin = await factory.CreateAdminClientAsync();
-        var doc = await UploadAsync(admin, "ViewerSession ungranted");
+        var doc = await DocumentViewerApiFactory.UploadPdfAsync(admin, "ViewerSession ungranted");
 
         var email = $"vs-ungranted-{Guid.NewGuid():N}@dotnetstore.test";
         await factory.CreateViewerAsync(email);
@@ -97,17 +95,5 @@ public sealed class RenderingTests(DocumentViewerApiFactory factory)
         var jwt = new JwtSecurityTokenHandler().ReadJwtToken(accessToken);
         var sub = jwt.Claims.Single(c => c.Type == JwtRegisteredClaimNames.Sub).Value;
         return Guid.Parse(sub);
-    }
-
-    private static async Task<DocumentDto> UploadAsync(HttpClient client, string title)
-    {
-        using var form = new MultipartFormDataContent();
-        var pdf = new ByteArrayContent(DocumentViewerApiFactory.FakePdfBytes(title));
-        pdf.Headers.ContentType = new MediaTypeHeaderValue("application/pdf");
-        form.Add(pdf, "file", $"{title.Replace(' ', '_')}.pdf");
-        form.Add(new StringContent(title), "Title");
-        var response = await client.PostAsync("/documents", form);
-        response.EnsureSuccessStatusCode();
-        return (await response.Content.ReadFromJsonAsync<DocumentDto>())!;
     }
 }

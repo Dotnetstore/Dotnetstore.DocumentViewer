@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Runtime.Versioning;
 using System.Text;
 using System.Threading.RateLimiting;
+using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Auditing;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Caching;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Conversion;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Identity;
@@ -38,6 +39,10 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // Manual transactions (e.g. multi-step uploads) would be incompatible with the retrying
 // execution strategy that EnrichNpgsqlDbContext enables by default — disable up front.
 builder.EnrichNpgsqlDbContext<AppDbContext>(s => s.DisableRetry = true);
+
+// Cross-cutting persistence services (centralise rules + writes so the endpoints stay thin).
+builder.Services.AddScoped<IDocumentAccessPolicy, DocumentAccessPolicy>();
+builder.Services.AddScoped<IAuditLogger, AuditLogger>();
 
 // Identity
 builder.Services

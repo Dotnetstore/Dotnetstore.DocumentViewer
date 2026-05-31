@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Dotnetstore.DocumentViewer.Shared.SDK.Dtos.Auth;
+using Dotnetstore.DocumentViewer.Shared.SDK.Dtos.Documents;
 using Dotnetstore.DocumentViewer.Shared.SDK.Dtos.Users;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Conversion;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Identity;
@@ -141,6 +142,24 @@ public class DocumentViewerApiFactory : WebApplicationFactory<Program>, IAsyncLi
         var client = CreateAnonymousClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         return client;
+    }
+
+    /// <summary>
+    /// Posts a fake PDF to <c>/documents</c> via <paramref name="client"/> (which must already
+    /// be authenticated as Admin) and returns the created <see cref="DocumentDto"/>. Centralised
+    /// so the half-dozen integration tests that need a "give me a doc to act on" no longer
+    /// hand-roll the multipart payload.
+    /// </summary>
+    public static async Task<DocumentDto> UploadPdfAsync(HttpClient client, string title)
+    {
+        using var form = new MultipartFormDataContent();
+        var pdf = new ByteArrayContent(FakePdfBytes(title));
+        pdf.Headers.ContentType = new MediaTypeHeaderValue("application/pdf");
+        form.Add(pdf, "file", $"{title.Replace(' ', '_')}.pdf");
+        form.Add(new StringContent(title), "Title");
+        var response = await client.PostAsync("/documents", form);
+        response.EnsureSuccessStatusCode();
+        return (await response.Content.ReadFromJsonAsync<DocumentDto>())!;
     }
 
     /// <summary>Bytes labeled as a PDF. The upload endpoint validates content type, not PDF structure.</summary>

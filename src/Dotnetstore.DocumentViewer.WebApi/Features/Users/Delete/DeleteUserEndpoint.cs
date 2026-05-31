@@ -1,5 +1,3 @@
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Identity;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Persistence.Entities;
 using FastEndpoints;
@@ -20,8 +18,7 @@ internal sealed class DeleteUserEndpoint(UserManager<ApplicationUser> userManage
     {
         var id = Route<Guid>("id");
 
-        var sub = User.FindFirstValue(JwtRegisteredClaimNames.Sub) ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (Guid.TryParse(sub, out var callerId) && callerId == id)
+        if (User.TryGetUserId(out var callerId) && callerId == id)
         {
             AddError("You cannot delete your own account.");
             await Send.ErrorsAsync(StatusCodes.Status400BadRequest, ct);

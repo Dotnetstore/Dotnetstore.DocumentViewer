@@ -1,5 +1,3 @@
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 using Dotnetstore.DocumentViewer.Shared.SDK.Dtos.Documents;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Identity;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Persistence;
@@ -8,7 +6,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Dotnetstore.DocumentViewer.WebApi.Features.Documents.GetMetadata;
 
-internal sealed class GetDocumentMetadataEndpoint(AppDbContext db)
+internal sealed class GetDocumentMetadataEndpoint(
+    AppDbContext db,
+    IDocumentAccessPolicy accessPolicy)
     : EndpointWithoutRequest<DocumentDto>
 {
     public override void Configure()
@@ -21,8 +21,7 @@ internal sealed class GetDocumentMetadataEndpoint(AppDbContext db)
     {
         var documentId = Route<Guid>("id");
 
-        var sub = User.FindFirstValue(JwtRegisteredClaimNames.Sub) ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (!Guid.TryParse(sub, out var userId))
+        if (!User.TryGetUserId(out var userId))
         {
             await Send.UnauthorizedAsync(ct);
             return;
@@ -36,15 +35,10 @@ internal sealed class GetDocumentMetadataEndpoint(AppDbContext db)
             return;
         }
 
-        if (!User.IsInRole(RoleNames.Admin))
+        if (!await accessPolicy.CanViewAsync(userId, User.IsInRole(RoleNames.Admin), documentId, ct))
         {
-            var hasAccess = await db.DocumentAccesses
-                .AnyAsync(a => a.DocumentId == documentId && a.UserId == userId, ct);
-            if (!hasAccess)
-            {
-                await Send.ForbiddenAsync(ct);
-                return;
-            }
+            await Send.ForbiddenAsync(ct);
+            return;
         }
 
         await Send.OkAsync(

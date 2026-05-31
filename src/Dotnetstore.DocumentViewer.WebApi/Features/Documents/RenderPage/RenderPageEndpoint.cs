@@ -1,9 +1,7 @@
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
+using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Auditing;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Caching;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Identity;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Persistence;
-using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Persistence.Entities;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Rendering;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Security;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Storage;
@@ -17,6 +15,8 @@ internal sealed class RenderPageEndpoint(
     IDocumentStorage storage,
     IPdfPageRenderer renderer,
     IPageImageCache cache,
+    IDocumentAccessPolicy accessPolicy,
+    IAuditLogger audit,
     ISignedUrlService signer,
     TimeProvider clock) : EndpointWithoutRequest
 {
@@ -34,8 +34,7 @@ internal sealed class RenderPageEndpoint(
         var sig = Query<string?>("sig", isRequired: false);
         var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
 
-        var sub = User.FindFirstValue(JwtRegisteredClaimNames.Sub) ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (!Guid.TryParse(sub, out var userId))
+        if (!User.TryGetUserId(out var userId))
         {
             await Send.UnauthorizedAsync(ct);
             return;
@@ -43,14 +42,16 @@ internal sealed class RenderPageEndpoint(
 
         if (string.IsNullOrWhiteSpace(expRaw) || !long.TryParse(expRaw, out var exp) || string.IsNullOrWhiteSpace(sig))
         {
-            await AuditAsync(db, "RenderPage.BadSignature", userId, documentId, page, StatusCodes.Status401Unauthorized, ip, ct);
+            await FailAndAudit(AuditActions.RenderPageBadSignature, StatusCodes.Status401Unauthorized,
+                userId, documentId, page, ip, ct);
             await Send.UnauthorizedAsync(ct);
             return;
         }
 
         if (!signer.Verify(userId, documentId, page, exp, sig))
         {
-            await AuditAsync(db, "RenderPage.BadSignature", userId, documentId, page, StatusCodes.Status401Unauthorized, ip, ct);
+            await FailAndAudit(AuditActions.RenderPageBadSignature, StatusCodes.Status401Unauthorized,
+                userId, documentId, page, ip, ct);
             await Send.UnauthorizedAsync(ct);
             return;
         }
@@ -58,31 +59,29 @@ internal sealed class RenderPageEndpoint(
         var document = await db.Documents.SingleOrDefaultAsync(d => d.Id == documentId, ct);
         if (document is null)
         {
-            await AuditAsync(db, "RenderPage.NotFound", userId, documentId, page, StatusCodes.Status404NotFound, ip, ct);
+            await FailAndAudit(AuditActions.RenderPageNotFound, StatusCodes.Status404NotFound,
+                userId, documentId, page, ip, ct);
             await Send.NotFoundAsync(ct);
             return;
         }
 
-        if (!User.IsInRole(RoleNames.Admin))
+        if (!await accessPolicy.CanViewAsync(userId, User.IsInRole(RoleNames.Admin), documentId, ct))
         {
-            var hasAccess = await db.DocumentAccesses
-                .AnyAsync(a => a.DocumentId == documentId && a.UserId == userId, ct);
-            if (!hasAccess)
-            {
-                await AuditAsync(db, "RenderPage.Forbidden", userId, documentId, page, StatusCodes.Status403Forbidden, ip, ct);
-                await Send.ForbiddenAsync(ct);
-                return;
-            }
+            await FailAndAudit(AuditActions.RenderPageForbidden, StatusCodes.Status403Forbidden,
+                userId, documentId, page, ip, ct);
+            await Send.ForbiddenAsync(ct);
+            return;
         }
 
         if (page < 0 || (document.PageCount > 0 && page >= document.PageCount))
         {
-            await AuditAsync(db, "RenderPage.OutOfRange", userId, documentId, page, StatusCodes.Status404NotFound, ip, ct);
+            await FailAndAudit(AuditActions.RenderPageOutOfRange, StatusCodes.Status404NotFound,
+                userId, documentId, page, ip, ct);
             await Send.NotFoundAsync(ct);
             return;
         }
 
-        var email = User.FindFirstValue(JwtRegisteredClaimNames.Email) ?? "unknown";
+        var email = User.GetEmail();
         var watermark = $"{email}  -  {ip ?? "?"}  -  {clock.GetUtcNow():yyyy-MM-dd HH:mm:ss} UTC";
 
         // Two-step: rasterized (unwatermarked) PNG is cached on disk per (docId, page);
@@ -97,7 +96,8 @@ internal sealed class RenderPageEndpoint(
         }
         var png = renderer.ApplyWatermarkPng(rasterized, watermark);
 
-        await AuditAsync(db, "RenderPage", userId, documentId, page, StatusCodes.Status200OK, ip, ct);
+        await audit.LogAsync(AuditActions.RenderPage, userId, documentId, page,
+            StatusCodes.Status200OK, ip, ct);
 
         HttpContext.Response.StatusCode = StatusCodes.Status200OK;
         HttpContext.Response.ContentType = "image/png";
@@ -105,20 +105,7 @@ internal sealed class RenderPageEndpoint(
         await HttpContext.Response.Body.WriteAsync(png, ct);
     }
 
-    private async Task AuditAsync(AppDbContext db, string action, Guid? userId, Guid? documentId, int? page,
-        int resultCode, string? ip, CancellationToken ct)
-    {
-        db.AccessAuditLogs.Add(new AccessAuditLog
-        {
-            Id = Guid.NewGuid(),
-            UserId = userId,
-            DocumentId = documentId,
-            PageNumber = page,
-            Action = action,
-            ResultCode = resultCode,
-            IpAddress = ip,
-            AtUtc = clock.GetUtcNow(),
-        });
-        await db.SaveChangesAsync(ct);
-    }
+    private Task FailAndAudit(string action, int status,
+        Guid? userId, Guid? documentId, int? page, string? ip, CancellationToken ct) =>
+        audit.LogAsync(action, userId, documentId, page, status, ip, ct);
 }

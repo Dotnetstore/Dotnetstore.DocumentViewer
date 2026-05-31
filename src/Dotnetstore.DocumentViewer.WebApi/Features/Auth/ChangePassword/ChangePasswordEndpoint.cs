@@ -1,6 +1,5 @@
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 using Dotnetstore.DocumentViewer.Shared.SDK.Dtos.Auth;
+using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Identity;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Persistence.Entities;
 using FastEndpoints;
 using Microsoft.AspNetCore.Identity;
@@ -17,8 +16,7 @@ internal sealed class ChangePasswordEndpoint(UserManager<ApplicationUser> userMa
 
     public override async Task HandleAsync(ChangePasswordRequest req, CancellationToken ct)
     {
-        var sub = User.FindFirstValue(JwtRegisteredClaimNames.Sub) ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (!Guid.TryParse(sub, out var userId))
+        if (!User.TryGetUserId(out var userId))
         {
             await Send.UnauthorizedAsync(ct);
             return;
