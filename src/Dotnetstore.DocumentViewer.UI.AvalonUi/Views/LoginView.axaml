@@ -3,20 +3,49 @@
              xmlns:vm="using:Dotnetstore.DocumentViewer.UI.AvalonUi.ViewModels"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="350"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
              x:Class="Dotnetstore.DocumentViewer.UI.AvalonUi.Views.LoginView"
              x:DataType="vm:LoginViewModel">
 
-    <StackPanel Margin="32" Spacing="12" Width="360" HorizontalAlignment="Center" VerticalAlignment="Center">
-        <TextBlock Text="Sign in" FontSize="22" FontWeight="SemiBold" HorizontalAlignment="Center"/>
-        <TextBox Text="{Binding Email, Mode=TwoWay}" Watermark="Email" />
-        <TextBox Text="{Binding Password, Mode=TwoWay}" Watermark="Password" PasswordChar="●" />
-        <Button Content="Sign in"
-                Command="{Binding LoginCommand}"
-                IsEnabled="{Binding LoginCommand.CanExecute}"
-                HorizontalAlignment="Stretch"/>
-        <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsBusy}" />
-        <TextBlock Text="{Binding ErrorMessage}" Foreground="Crimson" TextWrapping="Wrap"
-                   IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-    </StackPanel>
+    <Grid Background="{DynamicResource SemiColorBackground1}">
+        <Border Classes="Card" Width="400" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <StackPanel Spacing="16">
+
+                <StackPanel Spacing="6" HorizontalAlignment="Center">
+                    <Border Width="44" Height="44" CornerRadius="12"
+                            Background="{DynamicResource SemiColorPrimary}"
+                            HorizontalAlignment="Center">
+                        <TextBlock Text="D" Foreground="White" FontSize="22" FontWeight="Bold"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <TextBlock Text="DocumentViewer" Classes="Hero" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Sign in to continue" Classes="Subtle" HorizontalAlignment="Center"/>
+                </StackPanel>
+
+                <StackPanel Spacing="10">
+                    <TextBox Text="{Binding Email, Mode=TwoWay}" Watermark="Email"/>
+                    <TextBox Text="{Binding Password, Mode=TwoWay}" Watermark="Password"
+                             PasswordChar="●"/>
+                </StackPanel>
+
+                <Button Content="Sign in"
+                        Classes="Primary"
+                        Command="{Binding LoginCommand}"
+                        IsEnabled="{Binding LoginCommand.CanExecute}"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Center"
+                        Padding="0,10"/>
+
+                <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsBusy}"/>
+
+                <Border Classes="CardCompact"
+                        Background="#FFF1F0"
+                        BorderBrush="#FFA39E"
+                        Padding="12"
+                        IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                    <TextBlock Text="{Binding ErrorMessage}" Classes="StatusError" TextWrapping="Wrap"/>
+                </Border>
+            </StackPanel>
+        </Border>
+    </Grid>
 </UserControl>

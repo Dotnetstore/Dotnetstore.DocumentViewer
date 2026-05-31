@@ -3,51 +3,98 @@
              xmlns:vm="using:Dotnetstore.DocumentViewer.UI.AvalonUi.ViewModels"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="500"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="700"
              x:Class="Dotnetstore.DocumentViewer.UI.AvalonUi.Views.UploadDocumentView"
              x:DataType="vm:UploadDocumentViewModel">
 
-    <StackPanel Margin="32" Spacing="12" Width="520" HorizontalAlignment="Center" VerticalAlignment="Center">
-        <TextBlock Text="Upload document" FontSize="22" FontWeight="SemiBold" HorizontalAlignment="Center"/>
-        <TextBlock Text="PDF is stored as-is; DOCX is converted to PDF server-side via Gotenberg."
-                   Opacity="0.7" TextWrapping="Wrap" HorizontalAlignment="Center"/>
+    <ScrollViewer Background="{DynamicResource SemiColorBackground1}" Padding="32,24">
+        <Border Classes="Card" Width="560" HorizontalAlignment="Center" VerticalAlignment="Top">
+            <StackPanel Spacing="20">
 
-        <TextBox Text="{Binding Title, Mode=TwoWay}" Watermark="Document title"/>
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Upload document" Classes="Hero"/>
+                    <TextBlock Classes="Subtle" TextWrapping="Wrap"
+                               Text="PDFs are stored as-is. DOCX is converted to PDF server-side via Gotenberg before viewers can open it."/>
+                </StackPanel>
 
-        <Border BorderBrush="#22000000" BorderThickness="1" CornerRadius="4" Padding="12">
-            <StackPanel Spacing="6">
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                    <Button Content="Pick file…" Click="OnPickFileClick" x:Name="PickFileButton"/>
-                    <Button Content="Clear" Command="{Binding ClearFileCommand}"
-                            IsVisible="{Binding HasSelectedFile}"/>
+                <StackPanel Spacing="6">
+                    <TextBlock Text="Title" FontSize="13" FontWeight="Medium"/>
+                    <TextBox Text="{Binding Title, Mode=TwoWay}" Watermark="e.g. Quarterly report"/>
                 </StackPanel>
-                <TextBlock Text="No file selected." Opacity="0.6"
-                           IsVisible="{Binding !HasSelectedFile}"/>
-                <StackPanel IsVisible="{Binding HasSelectedFile}">
-                    <TextBlock>
-                        <Run Text="File: "/><Run Text="{Binding SelectedFileName}" FontWeight="SemiBold"/>
-                    </TextBlock>
-                    <TextBlock>
-                        <Run Text="Type: "/><Run Text="{Binding SelectedContentType}"/>
-                    </TextBlock>
-                    <TextBlock>
-                        <Run Text="Size: "/><Run Text="{Binding SelectedFileSize}"/><Run Text=" bytes"/>
-                    </TextBlock>
+
+                <StackPanel Spacing="6">
+                    <TextBlock Text="File" FontSize="13" FontWeight="Medium"/>
+
+                    <!-- Empty dropzone-style state -->
+                    <Border CornerRadius="10" Padding="24"
+                            BorderBrush="{DynamicResource SemiColorBorder}"
+                            BorderThickness="2"
+                            Background="{DynamicResource SemiColorFillTertiary}"
+                            IsVisible="{Binding !HasSelectedFile}">
+                        <StackPanel HorizontalAlignment="Center" Spacing="10">
+                            <Border Width="44" Height="44" CornerRadius="22"
+                                    Background="{DynamicResource SemiColorBackground0}"
+                                    HorizontalAlignment="Center">
+                                <TextBlock Text="↑" FontSize="22" FontWeight="SemiBold"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Text="No file selected" FontWeight="SemiBold"
+                                       HorizontalAlignment="Center"/>
+                            <TextBlock Text="Pick a PDF or DOCX from your computer." Classes="Subtle"
+                                       HorizontalAlignment="Center" TextWrapping="Wrap"/>
+                            <Button Content="Pick file…" Classes="Primary"
+                                    Click="OnPickFileClick"
+                                    HorizontalAlignment="Center"
+                                    Padding="20,8"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Selected file row -->
+                    <Border Classes="CardCompact" IsVisible="{Binding HasSelectedFile}">
+                        <Grid ColumnDefinitions="Auto,*,Auto">
+                            <Border Grid.Column="0" Width="40" Height="40" CornerRadius="8"
+                                    Background="{DynamicResource SemiColorPrimaryLight}"
+                                    Margin="0,0,12,0">
+                                <TextBlock Text="📄" FontSize="20"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding SelectedFileName}" FontWeight="SemiBold"/>
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBlock Text="{Binding SelectedContentType}" Classes="Meta"/>
+                                    <TextBlock Classes="Meta">
+                                        <Run Text="·"/>
+                                        <Run Text="{Binding SelectedFileSize}"/>
+                                        <Run Text="bytes"/>
+                                    </TextBlock>
+                                </StackPanel>
+                            </StackPanel>
+                            <Button Grid.Column="2" Content="Change" Classes="Tertiary"
+                                    Click="OnPickFileClick" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                            <Button Grid.Column="2" Margin="80,0,0,0"
+                                    Content="Remove" Classes="Tertiary"
+                                    Command="{Binding ClearFileCommand}"
+                                    VerticalAlignment="Center"/>
+                        </Grid>
+                    </Border>
                 </StackPanel>
+
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <Button Content="Upload"
+                            Classes="Primary"
+                            Command="{Binding UploadCommand}"
+                            IsEnabled="{Binding UploadCommand.CanExecute}"
+                            Padding="22,8"/>
+                    <Button Content="Cancel" Command="{Binding CancelCommand}" Padding="20,8"/>
+                    <ProgressBar IsIndeterminate="True" Width="160" VerticalAlignment="Center"
+                                 IsVisible="{Binding IsBusy}"/>
+                </StackPanel>
+
+                <TextBlock Text="{Binding StatusMessage}" Classes="StatusOk" TextWrapping="Wrap"
+                           IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                <TextBlock Text="{Binding ErrorMessage}" Classes="StatusError" TextWrapping="Wrap"
+                           IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
             </StackPanel>
         </Border>
-
-        <StackPanel Orientation="Horizontal" Spacing="8">
-            <Button Content="Upload"
-                    Command="{Binding UploadCommand}"
-                    IsEnabled="{Binding UploadCommand.CanExecute}"/>
-            <Button Content="Cancel" Command="{Binding CancelCommand}"/>
-            <ProgressBar IsIndeterminate="True" Width="160" IsVisible="{Binding IsBusy}"/>
-        </StackPanel>
-
-        <TextBlock Text="{Binding StatusMessage}" Foreground="ForestGreen" TextWrapping="Wrap"
-                   IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
-        <TextBlock Text="{Binding ErrorMessage}" Foreground="Crimson" TextWrapping="Wrap"
-                   IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
-    </StackPanel>
+    </ScrollViewer>
 </UserControl>

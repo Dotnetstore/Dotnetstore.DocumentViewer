@@ -1,0 +1,68 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Shared design tokens for the document viewer. Semi.Avalonia carries the heavy
+         theming; these are app-specific extras (card surface, hero heading, viewer canvas). -->
+
+    <Style Selector="Border.Card">
+        <Setter Property="Background" Value="{DynamicResource SemiColorBackground0}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource SemiColorBorder}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="10"/>
+        <Setter Property="Padding" Value="24"/>
+        <Setter Property="BoxShadow" Value="0 4 16 0 #14000000"/>
+    </Style>
+
+    <Style Selector="Border.CardCompact">
+        <Setter Property="Background" Value="{DynamicResource SemiColorBackground0}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource SemiColorBorder}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="8"/>
+        <Setter Property="Padding" Value="16"/>
+    </Style>
+
+    <Style Selector="TextBlock.Hero">
+        <Setter Property="FontSize" Value="26"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+
+    <Style Selector="TextBlock.SectionTitle">
+        <Setter Property="FontSize" Value="20"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+
+    <Style Selector="TextBlock.Subtle">
+        <Setter Property="Opacity" Value="0.7"/>
+        <Setter Property="FontSize" Value="13"/>
+    </Style>
+
+    <Style Selector="TextBlock.Meta">
+        <Setter Property="Opacity" Value="0.6"/>
+        <Setter Property="FontSize" Value="12"/>
+    </Style>
+
+    <Style Selector="TextBlock.StatusOk">
+        <Setter Property="Foreground" Value="#0F8A50"/>
+        <Setter Property="FontWeight" Value="Medium"/>
+    </Style>
+
+    <Style Selector="TextBlock.StatusError">
+        <Setter Property="Foreground" Value="#D9342B"/>
+        <Setter Property="FontWeight" Value="Medium"/>
+    </Style>
+
+    <Style Selector="Border.PageCanvas">
+        <!-- Dark backdrop for rendered PDF pages so the white page jumps out. -->
+        <Setter Property="Background" Value="#1F2329"/>
+        <Setter Property="Padding" Value="24"/>
+    </Style>
+
+    <Style Selector="Border.PageImageFrame">
+        <Setter Property="Background" Value="White"/>
+        <Setter Property="BorderBrush" Value="#33000000"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="BoxShadow" Value="0 6 24 0 #40000000"/>
+        <Setter Property="Padding" Value="0"/>
+    </Style>
+
+</Styles>

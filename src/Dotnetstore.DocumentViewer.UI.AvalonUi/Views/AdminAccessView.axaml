@@ -6,60 +6,107 @@
              xmlns:userDto="using:Dotnetstore.DocumentViewer.Shared.SDK.Dtos.Users"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="600"
+             mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="700"
              x:Class="Dotnetstore.DocumentViewer.UI.AvalonUi.Views.AdminAccessView"
              x:DataType="vm:AdminAccessViewModel">
 
-    <Grid RowDefinitions="Auto,Auto,*,Auto,Auto" Margin="16">
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8" Margin="0,0,0,12">
-            <TextBlock Text="Document access" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center"/>
-            <Button Content="Refresh" Command="{Binding RefreshCommand}"/>
-            <ProgressBar IsIndeterminate="True" Width="120" IsVisible="{Binding IsBusy}"/>
-        </StackPanel>
+    <Grid Background="{DynamicResource SemiColorBackground1}" RowDefinitions="Auto,Auto,*,Auto,Auto" Margin="32,24">
 
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" Margin="0,0,0,8">
-            <TextBlock Text="Document:" VerticalAlignment="Center"/>
-            <ComboBox ItemsSource="{Binding Documents}"
-                      SelectedItem="{Binding SelectedDocument, Mode=TwoWay}"
-                      Width="420">
-                <ComboBox.ItemTemplate>
-                    <DataTemplate DataType="docDto:DocumentDto">
-                        <TextBlock Text="{Binding Title}"/>
-                    </DataTemplate>
-                </ComboBox.ItemTemplate>
-            </ComboBox>
-        </StackPanel>
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,20">
+            <StackPanel Grid.Column="0" Spacing="2">
+                <TextBlock Text="Document access" Classes="Hero"/>
+                <TextBlock Text="Pick a document, then add or revoke the users who can view it."
+                           Classes="Subtle"/>
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <ProgressBar IsIndeterminate="True" Width="120" IsVisible="{Binding IsBusy}"/>
+                <Button Content="Refresh" Command="{Binding RefreshCommand}"/>
+            </StackPanel>
+        </Grid>
 
-        <ListBox Grid.Row="2"
-                 ItemsSource="{Binding Grants}"
-                 SelectedItem="{Binding SelectedGrant, Mode=TwoWay}">
-            <ListBox.ItemTemplate>
-                <DataTemplate DataType="accessDto:DocumentAccessDto">
-                    <StackPanel Orientation="Horizontal" Spacing="12">
-                        <TextBlock Text="{Binding UserEmail}" FontWeight="SemiBold" Width="280"/>
-                        <TextBlock Text="{Binding GrantedAtUtc}" Opacity="0.7"/>
-                    </StackPanel>
-                </DataTemplate>
-            </ListBox.ItemTemplate>
-        </ListBox>
+        <!-- Document picker -->
+        <Border Grid.Row="1" Classes="CardCompact" Margin="0,0,0,16">
+            <StackPanel Spacing="8">
+                <TextBlock Text="Document" FontSize="13" FontWeight="Medium"/>
+                <ComboBox ItemsSource="{Binding Documents}"
+                          SelectedItem="{Binding SelectedDocument, Mode=TwoWay}"
+                          HorizontalAlignment="Stretch" PlaceholderText="Choose a document…">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate DataType="docDto:DocumentDto">
+                            <StackPanel Spacing="2">
+                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold"/>
+                                <TextBlock Text="{Binding OriginalFileName}" Classes="Meta"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </StackPanel>
+        </Border>
 
-        <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="8" Margin="0,12,0,0">
-            <TextBlock Text="Grant to:" VerticalAlignment="Center"/>
-            <ComboBox ItemsSource="{Binding AvailableUsers}"
-                      SelectedItem="{Binding UserToGrant, Mode=TwoWay}"
-                      Width="320">
-                <ComboBox.ItemTemplate>
-                    <DataTemplate DataType="userDto:UserDto">
-                        <TextBlock Text="{Binding Email}"/>
-                    </DataTemplate>
-                </ComboBox.ItemTemplate>
-            </ComboBox>
-            <Button Content="Grant" Command="{Binding GrantCommand}"/>
-            <Button Content="Revoke selected" Command="{Binding RevokeCommand}" Foreground="Crimson"/>
-        </StackPanel>
+        <!-- Grants list -->
+        <Border Grid.Row="2" Classes="Card" Padding="8">
+            <Panel>
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="6"
+                            IsVisible="{Binding SelectedDocument, Converter={x:Static ObjectConverters.IsNull}}">
+                    <TextBlock Text="No document selected" FontSize="16" FontWeight="SemiBold"
+                               HorizontalAlignment="Center"/>
+                    <TextBlock Text="Pick a document above to see who has access."
+                               Classes="Subtle" HorizontalAlignment="Center"/>
+                </StackPanel>
 
-        <TextBlock Grid.Row="4"
-                   Text="{Binding ErrorMessage}" Foreground="Crimson" TextWrapping="Wrap" Margin="0,8,0,0"
-                   IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                <ListBox ItemsSource="{Binding Grants}"
+                         SelectedItem="{Binding SelectedGrant, Mode=TwoWay}"
+                         Background="Transparent" BorderThickness="0"
+                         IsVisible="{Binding SelectedDocument, Converter={x:Static ObjectConverters.IsNotNull}}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate DataType="accessDto:DocumentAccessDto">
+                            <Grid ColumnDefinitions="Auto,*,Auto" Margin="4,4">
+                                <Border Grid.Column="0" Width="32" Height="32" CornerRadius="16"
+                                        Background="{DynamicResource SemiColorPrimaryLight}" Margin="0,0,12,0">
+                                    <TextBlock Text="{Binding UserEmail[0]}"
+                                               Foreground="{DynamicResource SemiColorPrimary}"
+                                               FontWeight="Bold"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding UserEmail}" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{Binding GrantedAtUtc, StringFormat='Granted {0:yyyy-MM-dd HH:mm} UTC'}"
+                                               Classes="Meta"/>
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Panel>
+        </Border>
+
+        <!-- Grant / Revoke controls -->
+        <Border Grid.Row="3" Classes="CardCompact" Margin="0,16,0,0"
+                IsVisible="{Binding SelectedDocument, Converter={x:Static ObjectConverters.IsNotNull}}">
+            <Grid ColumnDefinitions="*,Auto,Auto">
+                <ComboBox Grid.Column="0"
+                          ItemsSource="{Binding AvailableUsers}"
+                          SelectedItem="{Binding UserToGrant, Mode=TwoWay}"
+                          HorizontalAlignment="Stretch" PlaceholderText="Select a user to grant…">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate DataType="userDto:UserDto">
+                            <StackPanel Spacing="2">
+                                <TextBlock Text="{Binding Email}" FontWeight="SemiBold"/>
+                                <TextBlock Text="{Binding DisplayName}" Classes="Meta"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+                <Button Grid.Column="1" Classes="Primary" Content="Grant"
+                        Command="{Binding GrantCommand}" Margin="8,0,0,0" Padding="18,8"/>
+                <Button Grid.Column="2" Classes="Danger" Content="Revoke selected"
+                        Command="{Binding RevokeCommand}" Margin="8,0,0,0" Padding="18,8"/>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="4" Margin="0,12,0,0"
+                IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+            <TextBlock Text="{Binding ErrorMessage}" Classes="StatusError" TextWrapping="Wrap"/>
+        </Border>
     </Grid>
 </UserControl>

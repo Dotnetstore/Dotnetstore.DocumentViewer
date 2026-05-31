@@ -4,78 +4,130 @@
              xmlns:dto="using:Dotnetstore.DocumentViewer.Shared.SDK.Dtos.Users"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="600"
+             mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="700"
              x:Class="Dotnetstore.DocumentViewer.UI.AvalonUi.Views.AdminUsersView"
              x:DataType="vm:AdminUsersViewModel">
 
-    <Grid RowDefinitions="Auto,*,Auto" ColumnDefinitions="2*,3*" Margin="16">
-        <StackPanel Grid.Row="0" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="8" Margin="0,0,0,12">
-            <TextBlock Text="Users" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center"/>
-            <Button Content="New user" Command="{Binding NewCommand}"/>
-            <Button Content="Refresh" Command="{Binding RefreshCommand}"/>
-            <ProgressBar IsIndeterminate="True" Width="120" IsVisible="{Binding IsBusy}"/>
-        </StackPanel>
+    <Grid Background="{DynamicResource SemiColorBackground1}"
+          RowDefinitions="Auto,*,Auto" ColumnDefinitions="2*,3*" Margin="32,24">
 
-        <ListBox Grid.Row="1" Grid.Column="0"
-                 ItemsSource="{Binding Users}"
-                 SelectedItem="{Binding SelectedUser, Mode=TwoWay}"
-                 Margin="0,0,12,0">
-            <ListBox.ItemTemplate>
-                <DataTemplate DataType="dto:UserDto">
-                    <StackPanel>
-                        <TextBlock Text="{Binding Email}" FontWeight="SemiBold"/>
-                        <TextBlock Text="{Binding DisplayName}" Opacity="0.8"/>
-                    </StackPanel>
-                </DataTemplate>
-            </ListBox.ItemTemplate>
-        </ListBox>
-
-        <Border Grid.Row="1" Grid.Column="1"
-                BorderBrush="#22000000" BorderThickness="1" CornerRadius="6" Padding="16"
-                IsVisible="{Binding IsEditing}">
-            <StackPanel Spacing="10">
-                <TextBlock Text="Edit user" FontWeight="SemiBold" FontSize="16"
-                           IsVisible="{Binding !IsCreatingNew}"/>
-                <TextBlock Text="Create user" FontWeight="SemiBold" FontSize="16"
-                           IsVisible="{Binding IsCreatingNew}"/>
-
-                <TextBox Text="{Binding FormEmail, Mode=TwoWay}" Watermark="Email"
-                         IsEnabled="{Binding IsCreatingNew}"/>
-                <TextBox Text="{Binding FormDisplayName, Mode=TwoWay}" Watermark="Display name"/>
-                <TextBox Text="{Binding FormPassword, Mode=TwoWay}" Watermark="Initial password (only for new users)"
-                         PasswordChar="●" IsEnabled="{Binding IsCreatingNew}"/>
-
-                <StackPanel Orientation="Horizontal" Spacing="16">
-                    <CheckBox Content="Admin" IsChecked="{Binding FormIsAdmin, Mode=TwoWay}"/>
-                    <CheckBox Content="Viewer" IsChecked="{Binding FormIsViewer, Mode=TwoWay}"/>
-                </StackPanel>
-
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                    <Button Content="Save" Command="{Binding SaveCommand}"/>
-                    <Button Content="Cancel" Command="{Binding CancelCommand}"/>
-                    <Button Content="Delete" Command="{Binding DeleteCommand}" Foreground="Crimson"
-                            IsVisible="{Binding !IsCreatingNew}"/>
-                </StackPanel>
-
-                <!-- Admin reset-password panel, only when editing an existing user. -->
-                <Border BorderBrush="#22000000" BorderThickness="0,1,0,0" Margin="0,12,0,0" Padding="0,12,0,0"
-                        IsVisible="{Binding !IsCreatingNew}">
-                    <StackPanel Spacing="8">
-                        <TextBlock Text="Reset password" FontWeight="SemiBold"/>
-                        <TextBlock Text="Sets a new password and forces this user to change it on next login."
-                                   Opacity="0.7" TextWrapping="Wrap"/>
-                        <TextBox Text="{Binding ResetNewPassword, Mode=TwoWay}"
-                                 Watermark="New password (min 8 chars)" PasswordChar="●"/>
-                        <Button Content="Reset password" Command="{Binding ResetPasswordCommand}"/>
-                        <TextBlock Text="{Binding ResetStatusMessage}" Foreground="ForestGreen" TextWrapping="Wrap"
-                                   IsVisible="{Binding ResetStatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
-                    </StackPanel>
-                </Border>
+        <!-- Header -->
+        <Grid Grid.Row="0" Grid.ColumnSpan="2" ColumnDefinitions="*,Auto" Margin="0,0,0,20">
+            <StackPanel Grid.Column="0" Spacing="2">
+                <TextBlock Text="Users" Classes="Hero"/>
+                <TextBlock Text="Create accounts and assign roles. Viewers can only see documents they've been granted."
+                           Classes="Subtle"/>
             </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <ProgressBar IsIndeterminate="True" Width="120" IsVisible="{Binding IsBusy}"/>
+                <Button Content="Refresh" Command="{Binding RefreshCommand}"/>
+                <Button Content="New user" Classes="Primary" Command="{Binding NewCommand}"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- List -->
+        <Border Grid.Row="1" Grid.Column="0" Classes="Card" Padding="8" Margin="0,0,16,0">
+            <ListBox ItemsSource="{Binding Users}"
+                     SelectedItem="{Binding SelectedUser, Mode=TwoWay}"
+                     Background="Transparent" BorderThickness="0">
+                <ListBox.ItemTemplate>
+                    <DataTemplate DataType="dto:UserDto">
+                        <Grid ColumnDefinitions="Auto,*" Margin="4,6">
+                            <Border Grid.Column="0" Width="36" Height="36" CornerRadius="18"
+                                    Background="{DynamicResource SemiColorPrimaryLight}" Margin="0,0,12,0">
+                                <TextBlock Text="{Binding Email[0]}"
+                                           Foreground="{DynamicResource SemiColorPrimary}"
+                                           FontWeight="Bold"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding Email}" FontWeight="SemiBold"/>
+                                <TextBlock Text="{Binding DisplayName}" Classes="Meta"/>
+                            </StackPanel>
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
         </Border>
 
-        <TextBlock Grid.Row="2" Grid.ColumnSpan="2"
-                   Text="{Binding ErrorMessage}" Foreground="Crimson" TextWrapping="Wrap" Margin="0,8,0,0"
-                   IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+        <!-- Editor / Empty state -->
+        <Panel Grid.Row="1" Grid.Column="1">
+            <Border Classes="Card"
+                    IsVisible="{Binding !IsEditing}"
+                    Padding="32">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="6">
+                    <TextBlock Text="Select a user" FontSize="16" FontWeight="SemiBold"
+                               HorizontalAlignment="Center"/>
+                    <TextBlock Text="Pick one from the list, or click New user to create one."
+                               Classes="Subtle" HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+
+            <Border Classes="Card" IsVisible="{Binding IsEditing}">
+                <StackPanel Spacing="16">
+
+                    <TextBlock Text="Edit user" Classes="SectionTitle"
+                               IsVisible="{Binding !IsCreatingNew}"/>
+                    <TextBlock Text="Create user" Classes="SectionTitle"
+                               IsVisible="{Binding IsCreatingNew}"/>
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Email" FontSize="13" FontWeight="Medium"/>
+                        <TextBox Text="{Binding FormEmail, Mode=TwoWay}"
+                                 IsEnabled="{Binding IsCreatingNew}"
+                                 Watermark="user@example.com"/>
+                    </StackPanel>
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Display name" FontSize="13" FontWeight="Medium"/>
+                        <TextBox Text="{Binding FormDisplayName, Mode=TwoWay}"/>
+                    </StackPanel>
+
+                    <StackPanel Spacing="6" IsVisible="{Binding IsCreatingNew}">
+                        <TextBlock Text="Initial password" FontSize="13" FontWeight="Medium"/>
+                        <TextBox Text="{Binding FormPassword, Mode=TwoWay}" PasswordChar="●"
+                                 Watermark="min 8 chars"/>
+                    </StackPanel>
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Roles" FontSize="13" FontWeight="Medium"/>
+                        <StackPanel Orientation="Horizontal" Spacing="20">
+                            <CheckBox Content="Admin" IsChecked="{Binding FormIsAdmin, Mode=TwoWay}"/>
+                            <CheckBox Content="Viewer" IsChecked="{Binding FormIsViewer, Mode=TwoWay}"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Content="Save" Classes="Primary" Command="{Binding SaveCommand}" Padding="22,8"/>
+                        <Button Content="Cancel" Command="{Binding CancelCommand}" Padding="20,8"/>
+                        <Button Content="Delete" Classes="Danger"
+                                Command="{Binding DeleteCommand}"
+                                IsVisible="{Binding !IsCreatingNew}" Padding="20,8"/>
+                    </StackPanel>
+
+                    <!-- Reset password -->
+                    <Border CornerRadius="8" Padding="14"
+                            Background="{DynamicResource SemiColorFillTertiary}"
+                            IsVisible="{Binding !IsCreatingNew}">
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="Reset password" FontWeight="SemiBold"/>
+                            <TextBlock Classes="Subtle" TextWrapping="Wrap"
+                                       Text="Sets a new password and forces this user to change it on next login."/>
+                            <TextBox Text="{Binding ResetNewPassword, Mode=TwoWay}"
+                                     Watermark="New password (min 8 chars)" PasswordChar="●"/>
+                            <Button Content="Reset password" Command="{Binding ResetPasswordCommand}"
+                                    HorizontalAlignment="Left"/>
+                            <TextBlock Text="{Binding ResetStatusMessage}" Classes="StatusOk" TextWrapping="Wrap"
+                                       IsVisible="{Binding ResetStatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Border>
+        </Panel>
+
+        <Border Grid.Row="2" Grid.ColumnSpan="2" Margin="0,12,0,0"
+                IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+            <TextBlock Text="{Binding ErrorMessage}" Classes="StatusError" TextWrapping="Wrap"/>
+        </Border>
     </Grid>
 </UserControl>

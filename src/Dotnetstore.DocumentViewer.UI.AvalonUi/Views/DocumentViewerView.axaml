@@ -3,38 +3,54 @@
              xmlns:vm="using:Dotnetstore.DocumentViewer.UI.AvalonUi.ViewModels"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="700"
+             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="760"
              x:Class="Dotnetstore.DocumentViewer.UI.AvalonUi.Views.DocumentViewerView"
              x:DataType="vm:DocumentViewerViewModel"
              Focusable="True">
 
-    <Grid RowDefinitions="Auto,*,Auto" Margin="16">
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8" Margin="0,0,0,12">
-            <Button Content="Back" Command="{Binding BackCommand}" />
-            <TextBlock Text="{Binding Title}" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center"/>
-            <ProgressBar IsIndeterminate="True" Width="120" IsVisible="{Binding IsBusy}" />
-        </StackPanel>
+    <Grid RowDefinitions="Auto,*,Auto">
 
-        <ScrollViewer Grid.Row="1">
-            <ItemsControl ItemsSource="{Binding Pages}">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <StackPanel Spacing="12" />
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate DataType="vm:PageImage">
-                        <Border BorderBrush="#33000000" BorderThickness="1" Background="White">
-                            <Image Source="{Binding Bitmap}" Stretch="Uniform"
-                                   ContextMenu="{x:Null}" />
-                        </Border>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-        </ScrollViewer>
+        <!-- Toolbar -->
+        <Border Grid.Row="0" Background="{DynamicResource SemiColorBackground0}"
+                BorderBrush="{DynamicResource SemiColorBorder}" BorderThickness="0,0,0,1">
+            <Grid ColumnDefinitions="Auto,*,Auto" Margin="20,12">
+                <Button Grid.Column="0" Content="← Back" Classes="Tertiary"
+                        Command="{Binding BackCommand}"/>
+                <StackPanel Grid.Column="1" HorizontalAlignment="Center" Spacing="2">
+                    <TextBlock Text="{Binding Title}" FontSize="15" FontWeight="SemiBold"
+                               HorizontalAlignment="Center"/>
+                    <TextBlock Text="View-only — every page carries a personal watermark."
+                               Classes="Meta" HorizontalAlignment="Center"/>
+                </StackPanel>
+                <ProgressBar Grid.Column="2" IsIndeterminate="True" Width="120" VerticalAlignment="Center"
+                             IsVisible="{Binding IsBusy}"/>
+            </Grid>
+        </Border>
 
-        <TextBlock Grid.Row="2" Text="{Binding ErrorMessage}" Foreground="Crimson"
-                   IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
-                   TextWrapping="Wrap" Margin="0,8,0,0"/>
+        <!-- Page canvas -->
+        <Border Grid.Row="1" Classes="PageCanvas">
+            <ScrollViewer>
+                <ItemsControl ItemsSource="{Binding Pages}" HorizontalAlignment="Center">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Spacing="16"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="vm:PageImage">
+                            <Border Classes="PageImageFrame">
+                                <Image Source="{Binding Bitmap}" Stretch="Uniform"
+                                       MaxWidth="900" ContextMenu="{x:Null}"/>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Border>
+
+        <Border Grid.Row="2" Background="#FFF1F0" Padding="16,10"
+                IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+            <TextBlock Text="{Binding ErrorMessage}" Classes="StatusError" TextWrapping="Wrap"/>
+        </Border>
     </Grid>
 </UserControl>

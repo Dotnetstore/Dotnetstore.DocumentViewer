@@ -2,14 +2,15 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="Dotnetstore.DocumentViewer.UI.AvalonUi.App"
              xmlns:local="using:Dotnetstore.DocumentViewer.UI.AvalonUi"
-             RequestedThemeVariant="Default">
-             <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
+             xmlns:semi="https://irihi.tech/semi"
+             RequestedThemeVariant="Light">
 
     <Application.DataTemplates>
         <local:ViewLocator/>
     </Application.DataTemplates>
-  
+
     <Application.Styles>
-        <FluentTheme />
+        <semi:SemiTheme Locale="en-US"/>
+        <StyleInclude Source="avares://Dotnetstore.DocumentViewer.UI.AvalonUi/Styles/AppStyles.axaml"/>
     </Application.Styles>
 </Application>
