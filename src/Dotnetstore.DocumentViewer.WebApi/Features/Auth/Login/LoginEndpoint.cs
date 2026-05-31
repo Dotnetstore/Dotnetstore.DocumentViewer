@@ -10,8 +10,16 @@ namespace Dotnetstore.DocumentViewer.WebApi.Features.Auth.Login;
 internal sealed class LoginEndpoint(
     UserManager<ApplicationUser> userManager,
     SignInManager<ApplicationUser> signIn,
+    IPasswordHasher<ApplicationUser> hasher,
     IJwtTokenService tokens) : Endpoint<LoginRequest, TokenResponse>
 {
+    // Pre-computed dummy hash used to equalise the wall-clock time between the
+    // "user exists" and "user does not exist" paths. Without this, an unauthenticated
+    // attacker can enumerate accounts by measuring login latency (~100 ms vs ~1 ms).
+    private static readonly string DummyHash =
+        new PasswordHasher<ApplicationUser>().HashPassword(new ApplicationUser(),
+            "dummy-password-for-timing-equalisation");
+
     public override void Configure()
     {
         Post("/auth/login");
@@ -25,6 +33,9 @@ internal sealed class LoginEndpoint(
         var user = await userManager.FindByEmailAsync(req.Email);
         if (user is null)
         {
+            // Discarded result — we only need the CPU cost to match the real verification
+            // path so timing doesn't leak whether the email matches a known user.
+            _ = hasher.VerifyHashedPassword(new ApplicationUser(), DummyHash, req.Password);
             await Send.UnauthorizedAsync(ct);
             return;
         }

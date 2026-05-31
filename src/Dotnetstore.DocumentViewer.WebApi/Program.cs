@@ -266,6 +266,9 @@ if (fhEnabled)
 app.UseMiddleware<ApiKeyMiddleware>();
 app.UseRateLimiter();
 app.UseAuthentication();
+// Runs AFTER UseAuthentication so claims are populated, BEFORE UseAuthorization
+// so a flagged user can't slip through a [Authorize]-decorated endpoint.
+app.UseMiddleware<MustChangePasswordGuardMiddleware>();
 app.UseAuthorization();
 
 app.UseFastEndpoints();

@@ -27,6 +27,10 @@ internal sealed class JwtTokenService(IOptions<JwtOptions> options, AppDbContext
             new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N")),
             new(JwtRegisteredClaimNames.Email, user.Email ?? string.Empty),
+            // Read on every request by MustChangePasswordGuardMiddleware. Stamped here
+            // (not derived from the user table per-request) so the bearer flow stays
+            // round-trip-free on the hot path.
+            new("mcp", user.MustChangePassword ? "1" : "0"),
         };
         claims.AddRange(roles.Select(r => new Claim("role", r)));
 

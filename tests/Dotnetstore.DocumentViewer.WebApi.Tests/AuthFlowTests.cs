@@ -66,8 +66,12 @@ public sealed class AuthFlowTests(DocumentViewerApiFactory factory)
     }
 
     [Fact]
-    public async Task Me_returns_admin_profile_with_must_change_password_flag()
+    public async Task Me_returns_admin_profile()
     {
+        // The fixture clears the seeded admin's MustChangePassword flag during
+        // InitializeAsync so subsequent tests aren't blocked by the MCP guard.
+        // The MCP-flowing-through-to-/auth/me path is exercised by a fresh viewer
+        // below in Me_for_flagged_viewer_reports_must_change_password.
         using var client = await factory.CreateAdminClientAsync();
 
         var me = await client.GetFromJsonAsync<MeResponse>("/auth/me");
@@ -75,6 +79,24 @@ public sealed class AuthFlowTests(DocumentViewerApiFactory factory)
         me.ShouldNotBeNull();
         me.Email.ShouldBe(DocumentViewerApiFactory.AdminEmail);
         me.Roles.ShouldContain("Admin");
+        me.MustChangePassword.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Me_for_flagged_viewer_reports_must_change_password()
+    {
+        var email = $"mcp-me-{Guid.NewGuid():N}@dotnetstore.test";
+        const string pwd = "ViewerPass123!";
+        await factory.CreateViewerAsync(email, pwd, mustChangePassword: true);
+
+        var token = await factory.LoginAsync(email, pwd);
+        using var client = factory.CreateAnonymousClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var me = await client.GetFromJsonAsync<MeResponse>("/auth/me");
+
+        me.ShouldNotBeNull();
+        me.Email.ShouldBe(email);
         me.MustChangePassword.ShouldBeTrue();
     }
 
@@ -85,7 +107,9 @@ public sealed class AuthFlowTests(DocumentViewerApiFactory factory)
         const string email = "changepw@dotnetstore.test";
         const string oldPwd = "OldPass123!";
         const string newPwd = "NewPass456!";
-        await factory.CreateViewerAsync(email, oldPwd);
+        // Mint with the flag set so the test exercises the real "first-login change-password
+        // → flag cleared" flow rather than starting from a flag-already-cleared state.
+        await factory.CreateViewerAsync(email, oldPwd, mustChangePassword: true);
 
         var initialToken = await factory.LoginAsync(email, oldPwd);
         using var user = factory.CreateAnonymousClient();

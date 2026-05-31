@@ -37,8 +37,12 @@ internal sealed class FileSystemDocumentStorage(IOptions<DocumentStorageOptions>
     private string Resolve(string storagePath)
     {
         var combined = Path.GetFullPath(Path.Combine(_root, storagePath));
-        // Path traversal guard: rebuilt absolute path must remain under _root.
-        if (!combined.StartsWith(_root, StringComparison.Ordinal))
+        var relative = Path.GetRelativePath(_root, combined);
+        // StartsWith(_root) was unsafe: with _root="/var/x", a combined of "/var/xevil/y"
+        // shares the prefix but is a sibling directory. GetRelativePath emits ".." when
+        // the target is outside _root, and a rooted path when on a different volume —
+        // either is a rejection. (See dotnet/runtime#41487 for the canonical pattern.)
+        if (relative.StartsWith("..", StringComparison.Ordinal) || Path.IsPathRooted(relative))
             throw new InvalidOperationException("Storage path escaped configured root.");
         return combined;
     }

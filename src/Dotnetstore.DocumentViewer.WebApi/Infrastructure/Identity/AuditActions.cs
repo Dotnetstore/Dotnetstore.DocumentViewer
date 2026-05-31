@@ -25,4 +25,6 @@ public static class AuditActions
 
     public const string PasswordChanged = "PasswordChanged";
     public const string PasswordReset = "PasswordReset";
+
+    public const string RefreshTokenReuse = "RefreshToken.Reuse";
 }

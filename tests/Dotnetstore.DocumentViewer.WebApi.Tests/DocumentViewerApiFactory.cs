@@ -51,6 +51,15 @@ public class DocumentViewerApiFactory : WebApplicationFactory<Program>, IAsyncLi
         await using var scope = Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await db.Database.MigrateAsync();
+
+        // The seeder marks the admin MustChangePassword=true. The new
+        // MustChangePasswordGuardMiddleware would block this admin from every
+        // non-/auth endpoint, breaking nearly every test. Clear it once here so
+        // the shared fixture's admin is immediately usable; tests that want a
+        // flagged user should use CreateViewerAsync(..., mustChangePassword: true).
+        await db.Users
+            .Where(u => u.Email == AdminEmail)
+            .ExecuteUpdateAsync(s => s.SetProperty(u => u.MustChangePassword, false));
     }
 
     public override async ValueTask DisposeAsync()
@@ -135,13 +144,26 @@ public class DocumentViewerApiFactory : WebApplicationFactory<Program>, IAsyncLi
         return token.AccessToken;
     }
 
-    public async Task<UserDto> CreateViewerAsync(string email, string password = "ViewerPass123!")
+    public async Task<UserDto> CreateViewerAsync(string email, string password = "ViewerPass123!", bool mustChangePassword = false)
     {
         using var adminClient = await CreateAdminClientAsync();
         var response = await adminClient.PostAsJsonAsync("/users",
             new CreateUserRequest(email, "Viewer User", password, [RoleNames.Viewer]));
         response.EnsureSuccessStatusCode();
-        return (await response.Content.ReadFromJsonAsync<UserDto>())!;
+        var dto = (await response.Content.ReadFromJsonAsync<UserDto>())!;
+
+        // CreateUserEndpoint always sets MustChangePassword=true (the right production
+        // default for admin-minted users). For tests that just want a viewer that can
+        // hit the document surface, clear it here so the MCP guard doesn't 403 them.
+        if (!mustChangePassword)
+        {
+            await using var scope = Services.CreateAsyncScope();
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            await db.Users
+                .Where(u => u.Id == dto.Id)
+                .ExecuteUpdateAsync(s => s.SetProperty(u => u.MustChangePassword, false));
+        }
+        return dto;
     }
 
     public async Task<HttpClient> CreateViewerClientAsync(string email, string password = "ViewerPass123!")
