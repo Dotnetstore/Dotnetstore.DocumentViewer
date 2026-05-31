@@ -12,7 +12,7 @@ internal sealed class SignedUrlService(IOptions<SignedUrlOptions> options, TimeP
     public SignedPage Sign(Guid userId, Guid documentId, int page)
     {
         var expires = clock.GetUtcNow().Add(_lifetime).ToUnixTimeSeconds();
-        var signature = Compute(userId, documentId, page, expires);
+        var signature = Base64UrlEncode(ComputeHmac(userId, documentId, page, expires));
         return new SignedPage(page, expires, signature);
     }
 
@@ -21,19 +21,43 @@ internal sealed class SignedUrlService(IOptions<SignedUrlOptions> options, TimeP
         if (clock.GetUtcNow().ToUnixTimeSeconds() > expiresUnix)
             return false;
 
-        var expected = Compute(userId, documentId, page, expiresUnix);
-        var a = Encoding.UTF8.GetBytes(expected);
-        var b = Encoding.UTF8.GetBytes(signature);
-        return CryptographicOperations.FixedTimeEquals(a, b);
+        // Compare on the raw 32-byte HMAC instead of base64 strings — shorter, no
+        // text-encoding round-trip, and FixedTimeEquals returns false on length mismatch
+        // (which covers any malformed signature without an exception).
+        if (!TryBase64UrlDecode(signature, out var supplied))
+            return false;
+
+        var expected = ComputeHmac(userId, documentId, page, expiresUnix);
+        return CryptographicOperations.FixedTimeEquals(expected, supplied);
     }
 
-    private string Compute(Guid userId, Guid documentId, int page, long expiresUnix)
+    private byte[] ComputeHmac(Guid userId, Guid documentId, int page, long expiresUnix)
     {
         var payload = $"{userId:N}|{documentId:N}|{page}|{expiresUnix}";
-        var bytes = HMACSHA256.HashData(_key, Encoding.UTF8.GetBytes(payload));
-        return Base64UrlEncode(bytes);
+        return HMACSHA256.HashData(_key, Encoding.UTF8.GetBytes(payload));
     }
 
     private static string Base64UrlEncode(ReadOnlySpan<byte> bytes) =>
         Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+
+    private static bool TryBase64UrlDecode(string input, out byte[] bytes)
+    {
+        var padded = input.Replace('-', '+').Replace('_', '/');
+        switch (padded.Length % 4)
+        {
+            case 2: padded += "=="; break;
+            case 3: padded += "="; break;
+            case 1: bytes = []; return false;
+        }
+        try
+        {
+            bytes = Convert.FromBase64String(padded);
+            return true;
+        }
+        catch (FormatException)
+        {
+            bytes = [];
+            return false;
+        }
+    }
 }

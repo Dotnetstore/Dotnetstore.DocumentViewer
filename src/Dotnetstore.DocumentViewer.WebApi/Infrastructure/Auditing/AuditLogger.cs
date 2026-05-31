@@ -5,14 +5,13 @@ namespace Dotnetstore.DocumentViewer.WebApi.Infrastructure.Auditing;
 
 internal sealed class AuditLogger(AppDbContext db, TimeProvider clock) : IAuditLogger
 {
-    public async Task LogAsync(
+    public void Add(
         string action,
         Guid? userId = null,
         Guid? documentId = null,
         int? pageNumber = null,
         int resultCode = 0,
-        string? ipAddress = null,
-        CancellationToken ct = default)
+        string? ipAddress = null)
     {
         db.AccessAuditLogs.Add(new AccessAuditLog
         {
@@ -25,6 +24,18 @@ internal sealed class AuditLogger(AppDbContext db, TimeProvider clock) : IAuditL
             IpAddress = ipAddress,
             AtUtc = clock.GetUtcNow(),
         });
+    }
+
+    public async Task LogAsync(
+        string action,
+        Guid? userId = null,
+        Guid? documentId = null,
+        int? pageNumber = null,
+        int resultCode = 0,
+        string? ipAddress = null,
+        CancellationToken ct = default)
+    {
+        Add(action, userId, documentId, pageNumber, resultCode, ipAddress);
         await db.SaveChangesAsync(ct);
     }
 }

@@ -12,5 +12,16 @@ public static class AuditActions
     public const string RenderPageForbidden = "RenderPage.Forbidden";
     public const string RenderPageOutOfRange = "RenderPage.OutOfRange";
 
+    public const string DocumentUploaded = "DocumentUploaded";
     public const string DocumentDeleted = "DocumentDeleted";
+
+    public const string AccessGranted = "AccessGranted";
+    public const string AccessRevoked = "AccessRevoked";
+
+    public const string UserCreated = "UserCreated";
+    public const string UserUpdated = "UserUpdated";
+    public const string UserDeleted = "UserDeleted";
+
+    public const string PasswordChanged = "PasswordChanged";
+    public const string PasswordReset = "PasswordReset";
 }

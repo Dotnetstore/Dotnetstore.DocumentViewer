@@ -33,12 +33,12 @@ public sealed class DocxUploadTests(DocumentViewerApiFactory factory)
     }
 
     [Fact]
-    public async Task Upload_rejects_unknown_content_type()
+    public async Task Upload_rejects_unrecognised_payload()
     {
         using var admin = await factory.CreateAdminClientAsync();
 
         using var form = new MultipartFormDataContent();
-        var content = new ByteArrayContent(DocumentViewerApiFactory.FakePdfBytes());
+        var content = new ByteArrayContent(DocumentViewerApiFactory.FakeUnsupportedBytes());
         content.Headers.ContentType = new MediaTypeHeaderValue("image/png");
         form.Add(content, "file", "doc.png");
 

@@ -1,4 +1,5 @@
 using Dotnetstore.DocumentViewer.Shared.SDK.Dtos.Users;
+using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Auditing;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Identity;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Persistence.Entities;
 using FastEndpoints;
@@ -6,7 +7,7 @@ using Microsoft.AspNetCore.Identity;
 
 namespace Dotnetstore.DocumentViewer.WebApi.Features.Users.Update;
 
-internal sealed class UpdateUserEndpoint(UserManager<ApplicationUser> userManager)
+internal sealed class UpdateUserEndpoint(UserManager<ApplicationUser> userManager, IAuditLogger audit)
     : Endpoint<UpdateUserRequest, UserDto>
 {
     public override void Configure()
@@ -60,6 +61,13 @@ internal sealed class UpdateUserEndpoint(UserManager<ApplicationUser> userManage
                 return;
             }
         }
+
+        User.TryGetUserId(out var actorId);
+        await audit.LogAsync(AuditActions.UserUpdated,
+            userId: actorId == Guid.Empty ? null : actorId,
+            resultCode: StatusCodes.Status200OK,
+            ipAddress: HttpContext.Connection.RemoteIpAddress?.ToString(),
+            ct: ct);
 
         await Send.OkAsync(
             new UserDto(user.Id, user.Email!, user.DisplayName, req.Roles, user.MustChangePassword),

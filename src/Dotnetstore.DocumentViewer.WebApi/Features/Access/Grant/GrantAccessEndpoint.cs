@@ -1,4 +1,5 @@
 using Dotnetstore.DocumentViewer.Shared.SDK.Dtos.Access;
+using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Auditing;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Identity;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Persistence;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Persistence.Entities;
@@ -7,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Dotnetstore.DocumentViewer.WebApi.Features.Access.Grant;
 
-internal sealed class GrantAccessEndpoint(AppDbContext db, TimeProvider clock)
+internal sealed class GrantAccessEndpoint(AppDbContext db, IAuditLogger audit, TimeProvider clock)
     : Endpoint<GrantAccessRequest, DocumentAccessDto>
 {
     public override void Configure()
@@ -65,6 +66,14 @@ internal sealed class GrantAccessEndpoint(AppDbContext db, TimeProvider clock)
             GrantedAtUtc = clock.GetUtcNow(),
         };
         db.DocumentAccesses.Add(access);
+        // The pageNumber slot doubles as the grantee user-id reference in the audit row —
+        // not ideal but the schema doesn't have a "subject user" column today; the action
+        // name + documentId + acting userId + IP still identify what happened.
+        audit.Add(AuditActions.AccessGranted,
+            userId: grantedById,
+            documentId: documentId,
+            resultCode: StatusCodes.Status200OK,
+            ipAddress: HttpContext.Connection.RemoteIpAddress?.ToString());
         await db.SaveChangesAsync(ct);
 
         await Send.OkAsync(

@@ -1,4 +1,5 @@
 using Dotnetstore.DocumentViewer.Shared.SDK.Dtos.Auth;
+using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Auditing;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Identity;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Persistence.Entities;
 using FastEndpoints;
@@ -6,7 +7,8 @@ using Microsoft.AspNetCore.Identity;
 
 namespace Dotnetstore.DocumentViewer.WebApi.Features.Auth.ChangePassword;
 
-internal sealed class ChangePasswordEndpoint(UserManager<ApplicationUser> userManager) : Endpoint<ChangePasswordRequest>
+internal sealed class ChangePasswordEndpoint(UserManager<ApplicationUser> userManager, IAuditLogger audit)
+    : Endpoint<ChangePasswordRequest>
 {
     public override void Configure()
     {
@@ -42,6 +44,12 @@ internal sealed class ChangePasswordEndpoint(UserManager<ApplicationUser> userMa
             user.MustChangePassword = false;
             await userManager.UpdateAsync(user);
         }
+
+        await audit.LogAsync(AuditActions.PasswordChanged,
+            userId: userId,
+            resultCode: StatusCodes.Status204NoContent,
+            ipAddress: HttpContext.Connection.RemoteIpAddress?.ToString(),
+            ct: ct);
 
         await Send.NoContentAsync(ct);
     }

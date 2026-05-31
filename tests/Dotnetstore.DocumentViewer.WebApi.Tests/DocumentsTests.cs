@@ -40,12 +40,14 @@ public sealed class DocumentsTests(DocumentViewerApiFactory factory)
     }
 
     [Fact]
-    public async Task Upload_with_non_pdf_content_type_returns_415()
+    public async Task Upload_with_unrecognised_payload_returns_415()
     {
         using var admin = await factory.CreateAdminClientAsync();
 
+        // Classification is by content sniffing: bytes that match neither %PDF- nor PK\x03\x04
+        // magic are rejected even though the content-type header / extension claim text.
         using var form = new MultipartFormDataContent();
-        var content = new ByteArrayContent(DocumentViewerApiFactory.FakePdfBytes());
+        var content = new ByteArrayContent(DocumentViewerApiFactory.FakeUnsupportedBytes());
         content.Headers.ContentType = new MediaTypeHeaderValue("text/plain");
         form.Add(content, "file", "doc.txt");
 

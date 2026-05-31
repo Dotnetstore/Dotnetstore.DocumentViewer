@@ -1,3 +1,4 @@
+using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Auditing;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Identity;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Persistence;
 using FastEndpoints;
@@ -5,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Dotnetstore.DocumentViewer.WebApi.Features.Access.Revoke;
 
-internal sealed class RevokeAccessEndpoint(AppDbContext db) : EndpointWithoutRequest
+internal sealed class RevokeAccessEndpoint(AppDbContext db, IAuditLogger audit) : EndpointWithoutRequest
 {
     public override void Configure()
     {
@@ -27,7 +28,14 @@ internal sealed class RevokeAccessEndpoint(AppDbContext db) : EndpointWithoutReq
             return;
         }
 
+        User.TryGetUserId(out var actorId);
+
         db.DocumentAccesses.Remove(access);
+        audit.Add(AuditActions.AccessRevoked,
+            userId: actorId == Guid.Empty ? null : actorId,
+            documentId: documentId,
+            resultCode: StatusCodes.Status204NoContent,
+            ipAddress: HttpContext.Connection.RemoteIpAddress?.ToString());
         await db.SaveChangesAsync(ct);
 
         await Send.NoContentAsync(ct);

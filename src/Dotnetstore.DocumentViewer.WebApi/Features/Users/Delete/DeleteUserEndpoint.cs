@@ -1,3 +1,4 @@
+using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Auditing;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Identity;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Persistence.Entities;
 using FastEndpoints;
@@ -5,7 +6,8 @@ using Microsoft.AspNetCore.Identity;
 
 namespace Dotnetstore.DocumentViewer.WebApi.Features.Users.Delete;
 
-internal sealed class DeleteUserEndpoint(UserManager<ApplicationUser> userManager) : EndpointWithoutRequest
+internal sealed class DeleteUserEndpoint(UserManager<ApplicationUser> userManager, IAuditLogger audit)
+    : EndpointWithoutRequest
 {
     public override void Configure()
     {
@@ -51,6 +53,12 @@ internal sealed class DeleteUserEndpoint(UserManager<ApplicationUser> userManage
             await Send.ErrorsAsync(StatusCodes.Status400BadRequest, ct);
             return;
         }
+
+        await audit.LogAsync(AuditActions.UserDeleted,
+            userId: User.TryGetUserId(out var actorId) ? actorId : null,
+            resultCode: StatusCodes.Status204NoContent,
+            ipAddress: HttpContext.Connection.RemoteIpAddress?.ToString(),
+            ct: ct);
 
         await Send.NoContentAsync(ct);
     }

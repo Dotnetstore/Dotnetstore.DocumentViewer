@@ -13,6 +13,13 @@ public interface IDocumentAccessPolicy
     /// <summary>
     /// Returns an <see cref="IQueryable{T}"/> filtered to documents the caller is allowed
     /// to see. Caller continues to project / sort / page in EF — no materialisation here.
+    /// <para>
+    /// Intentional leak of the <see cref="Document"/> entity: there is a single consumer
+    /// (ListDocumentsEndpoint) and the goal is to keep the filter composable with the
+    /// caller's projection. If a second consumer appears with materially different
+    /// projection or paging needs, add a typed projection method here instead of
+    /// growing parallel <c>.Where(...)</c> chains in callers.
+    /// </para>
     /// </summary>
     IQueryable<Document> Viewable(Guid userId, bool isAdmin);
 }

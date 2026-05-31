@@ -5,9 +5,11 @@ using Dotnetstore.DocumentViewer.Shared.SDK.Dtos.Documents;
 using Dotnetstore.DocumentViewer.Shared.SDK.Dtos.Users;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Conversion;
 using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Identity;
+using Dotnetstore.DocumentViewer.WebApi.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -40,9 +42,14 @@ public class DocumentViewerApiFactory : WebApplicationFactory<Program>, IAsyncLi
         _storageRoot = Path.Combine(Path.GetTempPath(), "dvtests-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_storageRoot);
 
-        // Force the host to spin up so DatabaseInitializer applies migrations + seeds the admin.
-        using var bootstrap = CreateBareClient();
-        _ = await bootstrap.GetAsync("/alive");
+        // Force host build (this also kicks off hosted-service StartAsync). We then directly
+        // await DatabaseInitializer.StartAsync ourselves: relying on /alive to "warm up" the
+        // host doesn't prove migrations finished because the alive probe doesn't touch the DB,
+        // and the host can begin serving requests before all hosted services complete in some
+        // builds. Migrations are idempotent so double-invocation is safe.
+        await using var scope = Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await db.Database.MigrateAsync();
     }
 
     public override async ValueTask DisposeAsync()
@@ -162,7 +169,8 @@ public class DocumentViewerApiFactory : WebApplicationFactory<Program>, IAsyncLi
         return (await response.Content.ReadFromJsonAsync<DocumentDto>())!;
     }
 
-    /// <summary>Bytes labeled as a PDF. The upload endpoint validates content type, not PDF structure.</summary>
+    /// <summary>Bytes that start with the <c>%PDF-</c> magic so the upload endpoint's
+    /// content-sniffing classifier accepts them as a PDF.</summary>
     public static byte[] FakePdfBytes(string label = "sample")
     {
         var header = "%PDF-1.4\n"u8.ToArray();
@@ -171,7 +179,16 @@ public class DocumentViewerApiFactory : WebApplicationFactory<Program>, IAsyncLi
         return [.. header, .. payload, .. footer];
     }
 
-    /// <summary>Bytes labeled as a DOCX. Like the PDF helper, only enough to pass the content-type gate.</summary>
-    public static byte[] FakeDocxBytes(string label = "sample") =>
-        System.Text.Encoding.UTF8.GetBytes("PK" + label + new string('z', 64));
+    /// <summary>Bytes that start with the ZIP local-file-header magic so the upload
+    /// classifier accepts them as a DOCX (DOCX is a zip).</summary>
+    public static byte[] FakeDocxBytes(string label = "sample")
+    {
+        var header = new byte[] { 0x50, 0x4B, 0x03, 0x04 };
+        var payload = System.Text.Encoding.UTF8.GetBytes(label + new string('z', 64));
+        return [.. header, .. payload];
+    }
+
+    /// <summary>Bytes that match NEITHER PDF nor ZIP magic — the upload endpoint should reject.</summary>
+    public static byte[] FakeUnsupportedBytes() =>
+        System.Text.Encoding.UTF8.GetBytes("not-a-document-payload-just-text-bytes");
 }
