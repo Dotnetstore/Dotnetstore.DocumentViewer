@@ -36,8 +36,13 @@ public sealed class RenderingTests(DocumentViewerApiFactory factory)
         var signer = factory.Services.GetRequiredService<ISignedUrlService>();
         var signed = signer.Sign(adminId, doc.Id, page: 0);
 
-        // Flip a character in the signature.
-        var tampered = signed.Signature[..^1] + (signed.Signature[^1] == 'A' ? 'B' : 'A');
+        // Flip the FIRST base64-url character. The verifier now decodes back to raw HMAC
+        // bytes before FixedTimeEquals — so a flip at the very END of a 43-char encoding
+        // of 32 bytes could land in the 2 padding bits and round-trip to the same bytes
+        // (giving the attacker a free pass). The first character covers 6 real payload
+        // bits, so any flip there is guaranteed to differ post-decode.
+        var first = signed.Signature[0];
+        var tampered = (first == 'A' ? 'B' : 'A') + signed.Signature[1..];
         var url = $"/documents/{doc.Id}/pages/0?exp={signed.ExpiresUnix}&sig={Uri.EscapeDataString(tampered)}";
 
         var response = await admin.GetAsync(url);
