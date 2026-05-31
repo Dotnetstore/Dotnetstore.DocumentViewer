@@ -26,7 +26,14 @@ public class DocumentViewerApiFactory : WebApplicationFactory<Program>, IAsyncLi
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:16-alpine").Build();
     private string _storageRoot = string.Empty;
 
-    public async ValueTask InitializeAsync()
+    /// <summary>
+    /// Override in a derived fixture to keep the DocumentConversionWorker registered.
+    /// Default true so the standard collection's DOCX upload tests aren't gated on a
+    /// running LibreOffice / Gotenberg.
+    /// </summary>
+    protected virtual bool DisableConversionWorker => true;
+
+    public virtual async ValueTask InitializeAsync()
     {
         await _postgres.StartAsync();
         _storageRoot = Path.Combine(Path.GetTempPath(), "dvtests-" + Guid.NewGuid().ToString("N"));
@@ -74,17 +81,20 @@ public class DocumentViewerApiFactory : WebApplicationFactory<Program>, IAsyncLi
             });
         });
 
-        // The DocumentConversionWorker hosted service shells out to LibreOffice. Tests
-        // can't assume soffice is installed, so we remove the worker registration entirely.
-        // DOCX upload tests assert the initial Status=Converting without waiting for the
-        // worker to run.
-        builder.ConfigureTestServices(services =>
+        // The DocumentConversionWorker hosted service calls Gotenberg / soffice. By
+        // default the shared collection has no converter running, so we strip the worker;
+        // dedicated end-to-end fixtures (GotenbergSmokeFactory) override
+        // DisableConversionWorker to false so the worker runs against a real Gotenberg.
+        if (DisableConversionWorker)
         {
-            var worker = services.FirstOrDefault(s =>
-                s.ServiceType == typeof(IHostedService) &&
-                s.ImplementationType == typeof(DocumentConversionWorker));
-            if (worker is not null) services.Remove(worker);
-        });
+            builder.ConfigureTestServices(services =>
+            {
+                var worker = services.FirstOrDefault(s =>
+                    s.ServiceType == typeof(IHostedService) &&
+                    s.ImplementationType == typeof(DocumentConversionWorker));
+                if (worker is not null) services.Remove(worker);
+            });
+        }
     }
 
     /// <summary>Client with the test API key attached but no JWT.</summary>
