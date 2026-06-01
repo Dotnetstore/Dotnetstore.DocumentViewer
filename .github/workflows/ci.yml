@@ -28,10 +28,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Pin to the SDK declared in global.json so a future 10.0.x SDK patch with a
+      # behavior change (e.g. STJ JsonTypeInfoResolverChain treatment of nulls)
+      # doesn't break the build differently than what the maintainer ran locally.
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 10.0.x
+          global-json-file: global.json
 
       - name: Cache NuGet
         uses: actions/cache@v4

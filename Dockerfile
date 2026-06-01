@@ -5,12 +5,18 @@
 # Local single-arch build:
 #   docker build -t dotnetstore/documentviewer-webapi:dev .
 
-ARG DOTNET_VERSION=10.0
+# Tags pinned to match global.json so local + CI + container builds all run on the
+# same SDK + runtime. The floating "10.0-noble" tag currently jumps to the SDK 10.0.300
+# feature band, whose paired ASP.NET Core runtime triggers a FastEndpoints /
+# JsonTypeInfoResolverChain NRE on first request. Bump these tags in lockstep with
+# global.json when intentionally rolling the SDK forward.
+ARG SDK_TAG=10.0.203-noble
+ARG RUNTIME_TAG=10.0.8-noble
 
 # ---- build ---------------------------------------------------------------
 # Pin the BUILDPLATFORM so the SDK runs natively (avoids QEMU on cross-builds);
 # `-a $TARGETARCH` makes the restore + publish produce the target's RID bits.
-FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION}-noble AS build
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:${SDK_TAG} AS build
 ARG TARGETARCH
 ARG BUILD_CONFIG=Release
 WORKDIR /src
@@ -34,7 +40,7 @@ RUN dotnet publish src/Dotnetstore.DocumentViewer.WebApi/Dotnetstore.DocumentVie
     -o /publish
 
 # ---- runtime --------------------------------------------------------------
-FROM mcr.microsoft.com/dotnet/aspnet:${DOTNET_VERSION}-noble AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:${RUNTIME_TAG} AS runtime
 
 # PDFium (via PDFtoImage) needs fontconfig at runtime for any page that touches text.
 # curl is used by the HEALTHCHECK directive below.
