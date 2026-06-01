@@ -91,20 +91,26 @@ jobs:
       - name: Boot smoke
         run: |
           set -euo pipefail
-          docker run --rm -d --name dv-webapi-ci -p 18080:8080 \
+          # Intentionally NOT --rm: the DB connection (invalid hostname) fails fast
+          # on the CI runner, the .NET process exits with non-zero, and an --rm
+          # container is gone before `docker logs` can read it. Explicit
+          # `docker rm -f` cleans up at the end of the step.
+          docker run -d --name dv-webapi-ci -p 18080:8080 \
             -e Jwt__SigningKey="ci-only-jwt-signing-key-thirty-two-chars-long" \
             -e SignedUrl__SigningKey="ci-only-signed-url-key-thirty-two-chars-long" \
             -e ApiKey__Value="ci-key" \
             -e Seed__Admin__Email="admin@dotnetstore.ci" \
             -e Seed__Admin__Password="CiSeed123!" \
             -e ConnectionStrings__documentviewer="Host=invalid;Database=x;Username=y;Password=z" \
-            dotnetstore/documentviewer-webapi:ci || true
+            dotnetstore/documentviewer-webapi:ci
 
-          # The DB connection will fail (intentional — no Postgres here) and the
-          # process will exit. Wait a few seconds, then assert that the container
-          # at least registered its endpoints before dying. That proves the image
-          # boots the .NET host correctly.
-          sleep 8
+          # docker wait blocks until the container exits, so we don't depend on a
+          # fragile fixed `sleep` (DNS-fail timing varies between runners).
+          docker wait dv-webapi-ci >/dev/null
+
           docker logs dv-webapi-ci 2>&1 | tee /tmp/dv-webapi-ci.log
+          # Endpoint registration happens before DI tries to open the DB. If this
+          # line is present, the image at least booted the .NET host correctly.
           grep -q "Registered .* endpoints" /tmp/dv-webapi-ci.log
+
           docker rm -f dv-webapi-ci >/dev/null 2>&1 || true
